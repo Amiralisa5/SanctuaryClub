@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}{{ week.title }} — SanctuaryClub{% endblock %}
+{% block content %}
+<h1>{{ week.title }}</h1>
+<p class="muted">Week of {{ week.week_start }} · {{ week.client.user.full_name }} ·
+  <a href="/coach/clients/{{ week.client_id }}">back to client</a></p>
+
+{% for day in week.days %}
+<div class="card">
+  <h2>{{ day.day_name }}{% if day.title %} — {{ day.title }}{% endif %}</h2>
+  {% if day.notes %}<p class="muted">{{ day.notes }}</p>{% endif %}
+  <div class="table-wrap">
+  <table>
+    <tr><th>Exercise</th><th>Sets</th><th>Reps</th><th>Weight</th><th>Rest</th><th>Notes</th><th></th></tr>
+    {% for item in day.items %}
+    <tr>
+      <td>{{ item.exercise.name }}</td>
+      <td>{{ item.sets }}</td>
+      <td>{{ item.reps }}</td>
+      <td>{{ item.target_weight }}</td>
+      <td>{{ item.rest_seconds }}s</td>
+      <td class="muted">{{ item.notes }}</td>
+      <td>
+        <form method="post" action="/coach/items/{{ item.id }}/delete" class="inline">
+          <button class="btn danger">✕</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="7" class="muted">Rest day / no exercises yet.</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+  <details>
+    <summary>Add exercise</summary>
+    <form method="post" action="/coach/programs/{{ week.id }}/days/{{ day.day_index }}/items">
+      <label>Exercise name <input name="exercise_name" list="exercise-list" required></label>
+      <div class="grid2">
+        <label>Sets <input type="number" name="sets" value="3" min="1"></label>
+        <label>Reps <input name="reps" value="10"></label>
+        <label>Target weight <input name="target_weight" placeholder="e.g. 60 kg"></label>
+        <label>Rest (seconds) <input type="number" name="rest_seconds" value="90" min="0"></label>
+      </div>
+      <label>Notes <input name="notes"></label>
+      <button class="btn primary">Add</button>
+    </form>
+  </details>
+  <details>
+    <summary>Edit day title/notes</summary>
+    <form method="post" action="/coach/programs/{{ week.id }}/days/{{ day.day_index }}">
+      <label>Title <input name="title" value="{{ day.title }}"></label>
+      <label>Notes <input name="notes" value="{{ day.notes }}"></label>
+      <button class="btn">Save</button>
+    </form>
+  </details>
+</div>
+{% endfor %}
+
+<datalist id="exercise-list">
+  {% for e in exercises %}<option value="{{ e.name }}">{% endfor %}
+</datalist>
+{% endblock %}

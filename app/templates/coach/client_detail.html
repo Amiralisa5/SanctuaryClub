@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}{{ client.user.full_name }} — SanctuaryClub{% endblock %}
+{% block content %}
+<h1>{{ client.user.full_name }}</h1>
+<p class="muted">{{ client.user.email }}</p>
+
+<div class="stats">
+  <div class="stat"><div class="num">{{ summary.booked }}</div><div class="lbl">Booked this month</div></div>
+  <div class="stat"><div class="num">{{ summary.present }}</div><div class="lbl">Present</div></div>
+  <div class="stat"><div class="num">{{ summary.absent }}</div><div class="lbl">Absent</div></div>
+  <div class="stat"><div class="num">{{ summary.excused }}</div><div class="lbl">Excused</div></div>
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <h2>Monthly plan</h2>
+    <p class="muted">Current month: {% if plan %}{{ plan.quota_label }} sessions{% else %}no plan set{% endif %}</p>
+    <form method="post" action="/coach/clients/{{ client.id }}/plan">
+      <label>Year <input type="number" name="year" value="{{ current.year }}" required></label>
+      <label>Month <input type="number" name="month" min="1" max="12" value="{{ current.month }}" required></label>
+      <label>Quota
+        <select name="quota">
+          {% for q in [4, 8, 12, 16, 20, 22] %}<option value="{{ q }}">{{ q }} sessions</option>{% endfor %}
+          <option value="unlimited">Unlimited</option>
+        </select>
+      </label>
+      <button class="btn primary">Set plan</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Book a session</h2>
+    <form method="post" action="/coach/clients/{{ client.id }}/bookings">
+      <label>Date <input type="date" name="booking_date" required></label>
+      <label>Section
+        <select name="section_id">
+          {% for s in sections %}<option value="{{ s.id }}">{{ s.label }}</option>{% endfor %}
+        </select>
+      </label>
+      <button class="btn primary">Book</button>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Bulk monthly booking wizard</h2>
+  <form method="post" action="/coach/clients/{{ client.id }}/wizard">
+    <div class="grid2">
+      <label>Year <input type="number" name="year" value="{{ current.year }}" required></label>
+      <label>Month <input type="number" name="month" min="1" max="12" value="{{ current.month }}" required></label>
+    </div>
+    <div class="checkboxes">
+      {% for wd, name in [(5,'Sat'),(6,'Sun'),(0,'Mon'),(1,'Tue'),(2,'Wed'),(3,'Thu'),(4,'Fri')] %}
+      <label><input type="checkbox" name="weekdays" value="{{ wd }}"> {{ name }}</label>
+      {% endfor %}
+    </div>
+    <label>Section
+      <select name="section_id">
+        {% for s in sections %}<option value="{{ s.id }}">{{ s.label }}</option>{% endfor %}
+      </select>
+    </label>
+    <button class="btn primary">Book all matching days</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Training programs</h2>
+  <ul>
+    {% for p in programs %}
+    <li><a href="/coach/programs/{{ p.id }}">{{ p.title }}</a> <span class="muted">(week of {{ p.week_start }})</span></li>
+    {% else %}
+    <li class="muted">No programs yet.</li>
+    {% endfor %}
+  </ul>
+  <form method="post" action="/coach/clients/{{ client.id }}/programs">
+    <div class="grid2">
+      <label>Week start <input type="date" name="week_start" required></label>
+      <label>Title <input name="title" placeholder="e.g. Hypertrophy block W1"></label>
+    </div>
+    <button class="btn primary">Create program week</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Recent bookings</h2>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Date</th><th>Section</th><th>Status</th><th>Attendance</th><th>Check-in data</th><th>Actions</th></tr>
+    {% for b in bookings %}
+    <tr>
+      <td>{{ b.date }}</td>
+      <td>{{ b.section.label }}</td>
+      <td><span class="badge badge-{{ b.status.value }}">{{ b.status.value }}</span></td>
+      <td>
+        {% if b.attendance %}
+          <span class="badge badge-{{ b.attendance.status.value }}">{{ b.attendance.status.value }}</span>
+          {% if b.attendance.auto %}<span class="muted">(auto)</span>{% endif %}
+        {% else %}<span class="muted">—</span>{% endif %}
+      </td>
+      <td class="muted">
+        {% if b.attendance and b.attendance.status.value == 'PRESENT' %}
+          {% if b.attendance.weight_kg %}{{ b.attendance.weight_kg }} kg · {% endif %}
+          {% if b.attendance.rpe %}RPE {{ b.attendance.rpe }} · {% endif %}
+          {% if b.attendance.completion_pct is not none %}{{ b.attendance.completion_pct }}%{% endif %}
+          {% if b.attendance.notes %}<br>{{ b.attendance.notes }}{% endif %}
+        {% endif %}
+      </td>
+      <td>
+        {% if b.status.value == 'BOOKED' %}
+        <form method="post" action="/coach/attendance/{{ b.id }}" class="inline">
+          <select name="status">
+            {% for st in attendance_statuses %}<option value="{{ st.value }}">{{ st.value }}</option>{% endfor %}
+          </select>
+          <button class="btn">Mark</button>
+        </form>
+        <form method="post" action="/coach/bookings/{{ b.id }}/cancel" class="inline">
+          <button class="btn danger">Cancel</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="6" class="muted">No bookings yet.</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+</div>
+{% endblock %}

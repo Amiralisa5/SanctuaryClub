@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Check in — SanctuaryClub{% endblock %}
+{% block content %}
+<div class="card narrow">
+  <h1>Check in</h1>
+  <p>{{ booking.date }} · {{ booking.section.label }}</p>
+  {% if booking.attendance %}
+    <p>Attendance already recorded:
+      <span class="badge badge-{{ booking.attendance.status.value }}">{{ booking.attendance.status.value }}</span></p>
+  {% elif can_check_in %}
+  <form method="post" action="/client/checkin/{{ booking.id }}">
+    <label>Body weight (kg) <input type="number" step="0.1" name="weight_kg" min="20" max="400"></label>
+    <label>Session RPE (1–10) <input type="number" name="rpe" min="1" max="10"></label>
+    <label>Completion (%) <input type="number" name="completion_pct" min="0" max="100" value="100"></label>
+    <label>Notes <textarea name="notes" rows="3" placeholder="How did it go?"></textarea></label>
+    <button class="btn primary">Check in — mark me present</button>
+  </form>
+  {% else %}
+    <p class="muted">Check-in window: {{ opens.strftime('%H:%M') }} – {{ closes.strftime('%H:%M') }} on {{ booking.date }}.
+    Come back then!</p>
+  {% endif %}
+  <p><a href="/client">← Back to dashboard</a></p>
+</div>
+{% endblock %}

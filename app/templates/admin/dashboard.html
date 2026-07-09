@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Admin — SanctuaryClub{% endblock %}
+{% block content %}
+<h1>Admin dashboard</h1>
+<div class="stats">
+  <div class="stat"><div class="num">{{ stats.coaches }}</div><div class="lbl">Coaches</div></div>
+  <div class="stat"><div class="num">{{ stats.clients }}</div><div class="lbl">Clients</div></div>
+  <div class="stat"><div class="num">{{ stats.bookings_today }}</div><div class="lbl">Bookings today</div></div>
+</div>
+<div class="card">
+  <h2>Recent activity</h2>
+  <div class="table-wrap">
+  <table>
+    <tr><th>When</th><th>Who</th><th>Action</th><th>Detail</th></tr>
+    {% for log in recent %}
+    <tr>
+      <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+      <td>{{ log.user.full_name if log.user else 'system' }}</td>
+      <td>{{ log.action }}</td>
+      <td class="muted">{{ log.detail }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" class="muted">No activity yet.</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+  <p><a href="/admin/audit">Full audit log →</a></p>
+</div>
+{% endblock %}

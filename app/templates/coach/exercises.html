@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Exercise library — SanctuaryClub{% endblock %}
+{% block content %}
+<h1>Exercise library</h1>
+<div class="grid2">
+  <div class="card">
+    <h2>Add exercise</h2>
+    <form method="post" action="/coach/exercises">
+      <label>Name <input name="name" required></label>
+      <label>Description <textarea name="description" rows="2"></textarea></label>
+      <label>Tags (comma-separated) <input name="tags" placeholder="legs, barbell"></label>
+      <button class="btn primary">Add</button>
+    </form>
+  </div>
+  <div class="card">
+    <h2>Library</h2>
+    <div class="table-wrap">
+    <table>
+      <tr><th>Name</th><th>Tags</th><th>Description</th></tr>
+      {% for e in exercises %}
+      <tr><td>{{ e.name }}</td><td class="muted">{{ e.tags }}</td><td class="muted">{{ e.description }}</td></tr>
+      {% else %}
+      <tr><td colspan="3" class="muted">No exercises yet.</td></tr>
+      {% endfor %}
+    </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
