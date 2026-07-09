@@ -1,34 +1,39 @@
 {% extends "base.html" %}
 {% block title %}My program — SanctuaryClub{% endblock %}
 {% block content %}
-<h1>My training program</h1>
+<div class="page-head">
+  <h1>My program</h1>
+  <div class="sub">Written by your coach — newest week first.</div>
+</div>
+
 {% for week in weeks %}
 <div class="card">
-  <h2>{{ week.title }} <span class="muted">(week of {{ week.week_start }})</span></h2>
-  {% if week.notes %}<p class="muted">{{ week.notes }}</p>{% endif %}
+  <div class="eyebrow">Week of {{ week.week_start }}</div>
+  <h2 style="margin-bottom:.2rem;">{{ week.title }}</h2>
+  {% if week.notes %}<p class="muted" style="margin-top:0;">{{ week.notes }}</p>{% endif %}
   {% for day in week.days %}
     {% if day.items or day.title %}
-    <h3>{{ day.day_name }}{% if day.title %} — {{ day.title }}{% endif %}</h3>
-    {% if day.notes %}<p class="muted">{{ day.notes }}</p>{% endif %}
-    <div class="table-wrap">
-    <table>
-      <tr><th>Exercise</th><th>Sets</th><th>Reps</th><th>Weight</th><th>Rest</th><th>Notes</th></tr>
+    <div class="day-card">
+      <div class="day-head">
+        <span class="dow">{{ day.day_name }}</span>
+        {% if day.title %}<span class="dtitle">{{ day.title }}</span>{% endif %}
+      </div>
+      {% if day.notes %}<p class="muted" style="margin:.1rem 0 .3rem;">{{ day.notes }}</p>{% endif %}
       {% for item in day.items %}
-      <tr>
-        <td>{{ item.exercise.name }}</td>
-        <td>{{ item.sets }}</td>
-        <td>{{ item.reps }}</td>
-        <td>{{ item.target_weight }}</td>
-        <td>{{ item.rest_seconds }}s</td>
-        <td class="muted">{{ item.notes }}</td>
-      </tr>
+      <div class="exercise-row">
+        <div class="xname">{{ item.exercise.name }}
+          {% if item.notes %}<div class="xnotes">{{ item.notes }}</div>{% endif %}
+        </div>
+        <span class="setchip">{{ item.sets }} × {{ item.reps }}</span>
+        {% if item.target_weight %}<span class="setchip">{{ item.target_weight }}</span>{% endif %}
+        <span class="setchip">⏱ {{ item.rest_seconds }}s</span>
+      </div>
       {% endfor %}
-    </table>
     </div>
     {% endif %}
   {% endfor %}
 </div>
 {% else %}
-<div class="card"><p class="muted">Your coach hasn't published a program yet.</p></div>
+<div class="card"><div class="empty"><span class="glyph">📝</span>Your coach hasn't published a program yet.</div></div>
 {% endfor %}
 {% endblock %}

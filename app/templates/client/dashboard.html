@@ -1,52 +1,86 @@
 {% extends "base.html" %}
-{% block title %}My gym — SanctuaryClub{% endblock %}
+{% block title %}Today — SanctuaryClub{% endblock %}
 {% block content %}
-<h1>Welcome, {{ user.full_name }}</h1>
-<p class="muted">Coach: {{ client.coach.user.full_name }} ·
-  Plan this month: {% if plan %}{{ plan.quota_label }} sessions{% else %}none — ask your coach{% endif %}</p>
-
-<div class="stats">
-  <div class="stat"><div class="num">{{ summary.booked }}</div><div class="lbl">Booked</div></div>
-  <div class="stat"><div class="num">{{ summary.present }}</div><div class="lbl">Present</div></div>
-  <div class="stat"><div class="num">{{ summary.absent }}</div><div class="lbl">Absent</div></div>
-  <div class="stat"><div class="num">{{ summary.excused }}</div><div class="lbl">Excused</div></div>
+<div class="page-head">
+  <h1>Hi {{ user.full_name.split()[0] }} 👋</h1>
+  <div class="sub">Coach {{ client.coach.user.full_name }} ·
+    {% if plan %}{{ plan.quota_label }} sessions this month{% else %}no plan yet — ask your coach{% endif %}</div>
 </div>
 
 {% if checkin_ready %}
-<div class="card">
-  <h2>✅ Check-in is open!</h2>
-  {% for b in checkin_ready %}
-  <p>{{ b.date }} {{ b.section.label }} —
-    <a class="btn primary" href="/client/checkin/{{ b.id }}">Check in now</a></p>
-  {% endfor %}
+{% for b in checkin_ready %}
+<div class="hero-card">
+  <div class="eyebrow">Check-in is open</div>
+  <h2>{{ b.section.label }} session</h2>
+  <div class="sub">You're on time — check in to be marked present.</div>
+  <a class="btn" href="/client/checkin/{{ b.id }}">Check in now →</a>
+</div>
+{% endfor %}
+{% elif upcoming %}
+<div class="hero-card">
+  <div class="eyebrow">Next session</div>
+  <h2>{{ upcoming[0].date.strftime('%A, %b %-d') }} · {{ upcoming[0].section.label }}</h2>
+  <div class="sub">Check-in opens 10 minutes before start.</div>
 </div>
 {% endif %}
 
-<div class="card">
-  <h2>Upcoming sessions</h2>
-  <div class="table-wrap">
-  <table>
-    <tr><th>Date</th><th>Section</th><th></th></tr>
+{% set marked = summary.present + summary.absent + summary.excused %}
+{% set rate = ((summary.present / marked * 100)|round|int) if marked else 0 %}
+<div class="grid2">
+  <div class="card">
+    <h2>Attendance this month</h2>
+    <div class="ring-wrap">
+      <svg class="ring" viewBox="0 0 110 110" role="img" aria-label="Attendance {{ rate }} percent">
+        <circle class="track" cx="55" cy="55" r="45"></circle>
+        <circle class="fill" cx="55" cy="55" r="45"
+                stroke-dasharray="282.74"
+                stroke-dashoffset="{{ '%.1f'|format(282.74 * (1 - rate / 100)) }}"></circle>
+        <text x="55" y="53" text-anchor="middle">{{ rate }}%</text>
+        <text x="55" y="68" text-anchor="middle" class="pct-label">attended</text>
+      </svg>
+      <div>
+        <div class="muted" style="margin-bottom:.4rem;"><span class="badge badge-PRESENT">PRESENT</span> {{ summary.present }}</div>
+        <div class="muted" style="margin-bottom:.4rem;"><span class="badge badge-ABSENT">ABSENT</span> {{ summary.absent }}</div>
+        <div class="muted"><span class="badge badge-EXCUSED">EXCUSED</span> {{ summary.excused }}</div>
+      </div>
+    </div>
+    {% if plan and plan.quota %}
+    <hr class="divider">
+    <div class="meter-row"><span>Plan usage</span><span><strong>{{ summary.booked }}</strong> / {{ plan.quota }}</span></div>
+    <div class="meter"><span style="width: {{ [summary.booked / plan.quota * 100, 100]|min }}%"></span></div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Upcoming sessions</h2>
     {% for b in upcoming %}
-    <tr>
-      <td>{{ b.date }}</td>
-      <td>{{ b.section.label }}</td>
-      <td><a href="/client/checkin/{{ b.id }}">check-in page</a></td>
-    </tr>
+    <div class="list-row">
+      <span class="slot-chip"><span class="d">{{ b.date.strftime('%b %-d') }}</span>{{ b.section.label[:5] }}</span>
+      <div class="grow">
+        <div class="title">{{ b.date.strftime('%A') }}</div>
+        <div class="sub">{{ b.section.label }}</div>
+      </div>
+      <a class="btn sm" href="/client/checkin/{{ b.id }}">Details</a>
+    </div>
     {% else %}
-    <tr><td colspan="3" class="muted">No upcoming sessions. <a href="/client/bookings">Book one</a>.</td></tr>
+    <div class="empty"><span class="glyph">📅</span>No upcoming sessions.<br><a href="/client/bookings">Book your next one →</a></div>
     {% endfor %}
-  </table>
   </div>
 </div>
 
 <div class="card">
   <h2>This week's program</h2>
   {% if program %}
-    <p><strong>{{ program.title }}</strong> <span class="muted">(week of {{ program.week_start }})</span></p>
-    <p><a class="btn" href="/client/program">View full program</a></p>
+    <div class="list-row">
+      <span class="avatar">💪</span>
+      <div class="grow">
+        <div class="title">{{ program.title }}</div>
+        <div class="sub">Week of {{ program.week_start }}</div>
+      </div>
+      <a class="btn primary sm" href="/client/program">Open</a>
+    </div>
   {% else %}
-    <p class="muted">Your coach hasn't published a program yet.</p>
+    <div class="empty"><span class="glyph">📝</span>Your coach hasn't published a program yet.</div>
   {% endif %}
 </div>
 {% endblock %}

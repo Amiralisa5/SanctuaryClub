@@ -1,12 +1,30 @@
 {% extends "base.html" %}
-{% block title %}Login — SanctuaryClub{% endblock %}
-{% block content %}
-<div class="card narrow">
-  <h1>Sign in</h1>
-  <form method="post" action="/login">
-    <label>Email <input type="email" name="email" required autofocus></label>
-    <label>Password <input type="password" name="password" required></label>
-    <button type="submit" class="btn primary">Sign in</button>
-  </form>
+{% block title %}Sign in — SanctuaryClub{% endblock %}
+{% block anon %}
+<div class="auth-layout">
+  <section class="auth-hero">
+    <div class="logo-big">🏋️</div>
+    <h1>SanctuaryClub</h1>
+    <p>Your home gym, organized. Programs, bookings and attendance for coaches and clients — in one place.</p>
+    <ul>
+      <li>📅 Book sessions in two taps</li>
+      <li>💪 Follow your weekly program</li>
+      <li>✅ Check in and track your progress</li>
+    </ul>
+  </section>
+  <section class="auth-form">
+    <div class="card">
+      <h2>Welcome back</h2>
+      <p class="sub">Sign in to continue</p>
+      {% for f in flashes %}
+        <div class="flash flash-{{ f.category }}">{{ f.message }}</div>
+      {% endfor %}
+      <form method="post" action="/login">
+        <label>Email <input type="email" name="email" required autofocus autocomplete="email" placeholder="you@example.com"></label>
+        <label>Password <input type="password" name="password" required autocomplete="current-password" placeholder="••••••••"></label>
+        <button type="submit" class="btn primary block">Sign in</button>
+      </form>
+    </div>
+  </section>
 </div>
 {% endblock %}

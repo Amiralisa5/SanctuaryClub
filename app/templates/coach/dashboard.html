@@ -1,34 +1,35 @@
 {% extends "base.html" %}
 {% block title %}Coach — SanctuaryClub{% endblock %}
 {% block content %}
-<h1>Coach dashboard</h1>
-<div class="stats">
-  <div class="stat"><div class="num">{{ client_count }}</div><div class="lbl">Clients</div></div>
-  <div class="stat"><div class="num">{{ todays_bookings|length }}</div><div class="lbl">Sessions today</div></div>
+<div class="page-head">
+  <h1>Hi {{ user.full_name.split()[0] }} 👋</h1>
+  <div class="sub">{{ today.strftime('%A, %B %-d') }}</div>
 </div>
+
+<div class="stats">
+  <div class="stat"><div class="lbl">Clients</div><div class="num">{{ client_count }}</div></div>
+  <div class="stat"><div class="lbl">Sessions today</div><div class="num">{{ todays_bookings|length }}</div></div>
+  <div class="stat tone-good"><div class="lbl">Checked in</div>
+    <div class="num">{{ todays_bookings|selectattr('attendance')|selectattr('attendance.status.value', 'equalto', 'PRESENT')|list|length }}</div></div>
+</div>
+
 <div class="card">
-  <h2>Today's sessions — {{ today }}</h2>
-  <div class="table-wrap">
-  <table>
-    <tr><th>Section</th><th>Client</th><th>Status</th><th>Attendance</th></tr>
-    {% for b in todays_bookings %}
-    <tr>
-      <td>{{ b.section.label }}</td>
-      <td><a href="/coach/clients/{{ b.client_id }}">{{ b.client.user.full_name }}</a></td>
-      <td><span class="badge badge-{{ b.status.value }}">{{ b.status.value }}</span></td>
-      <td>
-        {% if b.attendance %}
-          <span class="badge badge-{{ b.attendance.status.value }}">{{ b.attendance.status.value }}</span>
-          {% if b.attendance.auto %}<span class="muted">(auto)</span>{% endif %}
-        {% else %}
-          <span class="muted">—</span>
-        {% endif %}
-      </td>
-    </tr>
+  <h2>Today's sessions</h2>
+  {% for b in todays_bookings %}
+  <div class="list-row">
+    <span class="slot-chip">{{ b.section.label[:5] }}</span>
+    <div class="grow">
+      <div class="title"><a href="/coach/clients/{{ b.client_id }}">{{ b.client.user.full_name }}</a></div>
+      <div class="sub">{{ b.section.label }} · <span class="badge badge-{{ b.status.value }}">{{ b.status.value }}</span></div>
+    </div>
+    {% if b.attendance %}
+      <span class="badge badge-{{ b.attendance.status.value }}">{{ b.attendance.status.value }}{{ ' · auto' if b.attendance.auto }}</span>
     {% else %}
-    <tr><td colspan="4" class="muted">No sessions today.</td></tr>
-    {% endfor %}
-  </table>
+      <span class="muted">not marked</span>
+    {% endif %}
   </div>
+  {% else %}
+  <div class="empty"><span class="glyph">🌤️</span>No sessions today.</div>
+  {% endfor %}
 </div>
 {% endblock %}

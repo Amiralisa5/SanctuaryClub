@@ -1,57 +1,61 @@
 {% extends "base.html" %}
 {% block title %}{{ week.title }} — SanctuaryClub{% endblock %}
 {% block content %}
-<h1>{{ week.title }}</h1>
-<p class="muted">Week of {{ week.week_start }} · {{ week.client.user.full_name }} ·
-  <a href="/coach/clients/{{ week.client_id }}">back to client</a></p>
+<div class="page-head">
+  <div class="eyebrow"><a href="/coach/clients/{{ week.client_id }}">← {{ week.client.user.full_name }}</a></div>
+  <h1>{{ week.title }}</h1>
+  <div class="sub">Week of {{ week.week_start }}</div>
+</div>
 
 {% for day in week.days %}
-<div class="card">
-  <h2>{{ day.day_name }}{% if day.title %} — {{ day.title }}{% endif %}</h2>
-  {% if day.notes %}<p class="muted">{{ day.notes }}</p>{% endif %}
-  <div class="table-wrap">
-  <table>
-    <tr><th>Exercise</th><th>Sets</th><th>Reps</th><th>Weight</th><th>Rest</th><th>Notes</th><th></th></tr>
-    {% for item in day.items %}
-    <tr>
-      <td>{{ item.exercise.name }}</td>
-      <td>{{ item.sets }}</td>
-      <td>{{ item.reps }}</td>
-      <td>{{ item.target_weight }}</td>
-      <td>{{ item.rest_seconds }}s</td>
-      <td class="muted">{{ item.notes }}</td>
-      <td>
-        <form method="post" action="/coach/items/{{ item.id }}/delete" class="inline">
-          <button class="btn danger">✕</button>
-        </form>
-      </td>
-    </tr>
-    {% else %}
-    <tr><td colspan="7" class="muted">Rest day / no exercises yet.</td></tr>
-    {% endfor %}
-  </table>
+<div class="card day-card">
+  <div class="day-head">
+    <span class="dow">{{ day.day_name }}</span>
+    {% if day.title %}<span class="dtitle">{{ day.title }}</span>{% endif %}
   </div>
-  <details>
+  {% if day.notes %}<p class="muted" style="margin:.1rem 0 .4rem;">{{ day.notes }}</p>{% endif %}
+
+  {% for item in day.items %}
+  <div class="exercise-row">
+    <div class="xname">{{ item.exercise.name }}
+      {% if item.notes %}<div class="xnotes">{{ item.notes }}</div>{% endif %}
+    </div>
+    <span class="setchip">{{ item.sets }} × {{ item.reps }}</span>
+    {% if item.target_weight %}<span class="setchip">{{ item.target_weight }}</span>{% endif %}
+    <span class="setchip">⏱ {{ item.rest_seconds }}s</span>
+    <form method="post" action="/coach/items/{{ item.id }}/delete" class="inline">
+      <button class="btn danger sm" title="Remove">✕</button>
+    </form>
+  </div>
+  {% else %}
+  <p class="muted" style="margin:.2rem 0;">Rest day — no exercises yet.</p>
+  {% endfor %}
+
+  <details class="reveal">
     <summary>Add exercise</summary>
-    <form method="post" action="/coach/programs/{{ week.id }}/days/{{ day.day_index }}/items">
-      <label>Exercise name <input name="exercise_name" list="exercise-list" required></label>
-      <div class="grid2">
-        <label>Sets <input type="number" name="sets" value="3" min="1"></label>
-        <label>Reps <input name="reps" value="10"></label>
-        <label>Target weight <input name="target_weight" placeholder="e.g. 60 kg"></label>
-        <label>Rest (seconds) <input type="number" name="rest_seconds" value="90" min="0"></label>
-      </div>
-      <label>Notes <input name="notes"></label>
-      <button class="btn primary">Add</button>
-    </form>
+    <div class="reveal-body">
+      <form method="post" action="/coach/programs/{{ week.id }}/days/{{ day.day_index }}/items">
+        <label>Exercise <input name="exercise_name" list="exercise-list" required placeholder="Start typing…"></label>
+        <div class="row">
+          <label style="flex:1;">Sets <input type="number" name="sets" value="3" min="1"></label>
+          <label style="flex:1;">Reps <input name="reps" value="10"></label>
+          <label style="flex:1;">Weight <input name="target_weight" placeholder="60 kg"></label>
+          <label style="flex:1;">Rest (s) <input type="number" name="rest_seconds" value="90" min="0"></label>
+        </div>
+        <label>Notes <input name="notes" placeholder="Tempo, cues…"></label>
+        <button class="btn primary sm">Add exercise</button>
+      </form>
+    </div>
   </details>
-  <details>
-    <summary>Edit day title/notes</summary>
-    <form method="post" action="/coach/programs/{{ week.id }}/days/{{ day.day_index }}">
-      <label>Title <input name="title" value="{{ day.title }}"></label>
-      <label>Notes <input name="notes" value="{{ day.notes }}"></label>
-      <button class="btn">Save</button>
-    </form>
+  <details class="reveal">
+    <summary>Day title & notes</summary>
+    <div class="reveal-body">
+      <form method="post" action="/coach/programs/{{ week.id }}/days/{{ day.day_index }}">
+        <label>Title <input name="title" value="{{ day.title }}" placeholder="e.g. Push day"></label>
+        <label>Notes <input name="notes" value="{{ day.notes }}"></label>
+        <button class="btn sm">Save</button>
+      </form>
+    </div>
   </details>
 </div>
 {% endfor %}

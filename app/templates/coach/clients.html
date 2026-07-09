@@ -1,21 +1,22 @@
 {% extends "base.html" %}
 {% block title %}My clients — SanctuaryClub{% endblock %}
 {% block content %}
-<h1>My clients</h1>
+<div class="page-head">
+  <h1>My clients</h1>
+  <div class="sub">{{ clients|length }} assigned to you</div>
+</div>
 <div class="card">
-  <div class="table-wrap">
-  <table>
-    <tr><th>Name</th><th>Email</th><th></th></tr>
-    {% for cl in clients %}
-    <tr>
-      <td>{{ cl.user.full_name }}</td>
-      <td>{{ cl.user.email }}</td>
-      <td><a class="btn" href="/coach/clients/{{ cl.id }}">Open</a></td>
-    </tr>
-    {% else %}
-    <tr><td colspan="3" class="muted">No clients assigned yet. Ask an admin to assign clients to you.</td></tr>
-    {% endfor %}
-  </table>
+  {% for cl in clients %}
+  <div class="list-row">
+    <span class="avatar">{{ cl.user.full_name.split()|map('first')|join('')|upper|truncate(2, True, '') }}</span>
+    <div class="grow">
+      <div class="title">{{ cl.user.full_name }}</div>
+      <div class="sub">{{ cl.user.email }}</div>
+    </div>
+    <a class="btn primary sm" href="/coach/clients/{{ cl.id }}">Open</a>
   </div>
+  {% else %}
+  <div class="empty"><span class="glyph">👥</span>No clients assigned yet.<br>Ask an admin to assign clients to you.</div>
+  {% endfor %}
 </div>
 {% endblock %}

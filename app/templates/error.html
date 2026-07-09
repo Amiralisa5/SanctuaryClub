@@ -2,8 +2,21 @@
 {% block title %}Error — SanctuaryClub{% endblock %}
 {% block content %}
 <div class="card narrow">
-  <h1>Oops</h1>
-  <p>{{ message }}</p>
-  <a class="btn" href="/">Back home</a>
+  <div class="empty">
+    <span class="glyph">🤔</span>
+    <h1 style="font-size:1.2rem; margin-bottom:.4rem;">Something's not right</h1>
+    <p>{{ message }}</p>
+    <a class="btn primary" href="/">Back home</a>
+  </div>
+</div>
+{% endblock %}
+{% block anon_content %}
+<div class="card">
+  <div class="empty">
+    <span class="glyph">🤔</span>
+    <h1 style="font-size:1.2rem; margin-bottom:.4rem;">Something's not right</h1>
+    <p>{{ message }}</p>
+    <a class="btn primary" href="/login">Go to sign in</a>
+  </div>
 </div>
 {% endblock %}
