@@ -49,11 +49,13 @@
       {{ navlink('/admin/audit', 'Audit log', 'list') }}
     {% elif user.role.value == 'COACH' %}
       {{ navlink('/coach', 'Dashboard', 'home', exact=True) }}
+      {{ navlink('/coach/calendar', 'Schedule', 'calendar') }}
       {{ navlink('/coach/clients', 'My clients', 'users') }}
       {{ navlink('/coach/exercises', 'Exercise library', 'dumbbell') }}
     {% elif user.role.value == 'CLIENT' %}
       {{ navlink('/client', 'Today', 'home', exact=True) }}
-      {{ navlink('/client/bookings', 'Bookings', 'calendar') }}
+      {{ navlink('/client/bookings', 'Bookings', 'list') }}
+      {{ navlink('/client/calendar', 'Calendar', 'calendar') }}
       {{ navlink('/client/program', 'My program', 'book') }}
     {% endif %}
     <div class="spacer"></div>
@@ -94,11 +96,13 @@
     {{ tablink('/admin/audit', 'Audit', 'list') }}
   {% elif user.role.value == 'COACH' %}
     {{ tablink('/coach', 'Home', 'home', exact=True) }}
+    {{ tablink('/coach/calendar', 'Schedule', 'calendar') }}
     {{ tablink('/coach/clients', 'Clients', 'users') }}
     {{ tablink('/coach/exercises', 'Library', 'dumbbell') }}
   {% elif user.role.value == 'CLIENT' %}
     {{ tablink('/client', 'Today', 'home', exact=True) }}
-    {{ tablink('/client/bookings', 'Bookings', 'calendar') }}
+    {{ tablink('/client/bookings', 'Bookings', 'list') }}
+    {{ tablink('/client/calendar', 'Calendar', 'calendar') }}
     {{ tablink('/client/program', 'Program', 'book') }}
   {% endif %}
 </nav>

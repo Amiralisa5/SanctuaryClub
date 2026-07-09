@@ -86,7 +86,7 @@ python -m pytest tests/
 ### Should Have
 - 🔲 Program templates
 - ✅ Exercise library with tags
-- 🔲 Calendar views for coach and client
+- ✅ Calendar views for coach and client
 - 🔲 Email notifications
 - 🔲 Progress metrics dashboard
 - 🔲 Media uploads (demo videos/links)

@@ -77,6 +77,34 @@ def dashboard(request: Request, client: Client = Depends(current_client), db=Dep
                   plan=plan, program=program, current=current)
 
 
+@router.get("/calendar")
+def calendar_view(request: Request, year: int | None = None, month: int | None = None,
+                  client: Client = Depends(current_client), db=Depends(get_db)):
+    from sqlalchemy import extract
+
+    from ..utils import WEEKDAY_NAMES, month_grid, shift_month
+
+    current = now()
+    year = year or current.year
+    month = month if month and 1 <= month <= 12 else current.month
+    bookings = db.scalars(
+        select(Booking)
+        .join(TimeSection)
+        .where(Booking.client_id == client.id,
+               extract("year", Booking.date) == year,
+               extract("month", Booking.date) == month)
+        .order_by(Booking.date, TimeSection.index)
+    ).all()
+    by_day: dict = {}
+    for b in bookings:
+        by_day.setdefault(b.date, []).append(b)
+    return render(request, "client/calendar.html", user=client.user,
+                  grid=month_grid(year, month), by_day=by_day, bookings=bookings,
+                  year=year, month=month, today=current.date(),
+                  weekday_names=WEEKDAY_NAMES,
+                  prev_ym=shift_month(year, month, -1), next_ym=shift_month(year, month, 1))
+
+
 @router.get("/bookings")
 def bookings_page(request: Request, client: Client = Depends(current_client), db=Depends(get_db)):
     current = now()

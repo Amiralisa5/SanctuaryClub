@@ -1,0 +1,15 @@
+{# Shared month-calendar grid. Expects: grid, by_day, year, month, today,
+   weekday_names, prev_ym, next_ym, base_url, event macro name via caller #}
+{% macro month_nav(base_url, year, month, prev_ym, next_ym) %}
+<div class="cal-nav">
+  <a class="btn sm" href="{{ base_url }}?year={{ prev_ym[0] }}&month={{ prev_ym[1] }}">← Prev</a>
+  <strong>{{ ['','January','February','March','April','May','June','July','August','September','October','November','December'][month] }} {{ year }}</strong>
+  <a class="btn sm" href="{{ base_url }}?year={{ next_ym[0] }}&month={{ next_ym[1] }}">Next →</a>
+</div>
+{% endmacro %}
+
+{% macro grid_open(weekday_names) %}
+<div class="cal-weekdays">
+  {% for name in weekday_names %}<span>{{ name }}</span>{% endfor %}
+</div>
+{% endmacro %}
