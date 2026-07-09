@@ -36,7 +36,8 @@ def run_auto_attendance() -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global scheduler
-    Base.metadata.create_all(engine)
+    if config.AUTO_CREATE_TABLES:
+        Base.metadata.create_all(engine)
     seed_all()
     if not config.DISABLE_SCHEDULER:
         scheduler = BackgroundScheduler(timezone=config.TIMEZONE)

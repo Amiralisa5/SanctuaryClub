@@ -34,6 +34,34 @@ export DATABASE_URL=postgresql+psycopg2://user:pass@localhost/sanctuaryclub
 
 Interactive API documentation is served at `/docs` (Swagger UI) and `/redoc`.
 
+### Docker (app + PostgreSQL in one command)
+
+```bash
+docker compose up --build
+```
+
+This starts a `postgres:16` container with a persistent volume, waits for it to
+become healthy, runs `alembic upgrade head` to create the schema, seeds the time
+sections / capacity defaults / bootstrap admin, and serves the app on
+http://localhost:8000 — already linked to the database via `DATABASE_URL`.
+Override `SECRET_KEY`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` in
+`docker-compose.yml` for anything beyond local use.
+
+### Database migrations (Alembic)
+
+Schema versions live in `alembic/versions/`. Alembic reads the same
+`DATABASE_URL` as the app.
+
+```bash
+alembic upgrade head                          # apply pending migrations
+alembic revision --autogenerate -m "message"  # after changing app/models.py
+alembic check                                 # verify models match migrations
+```
+
+Locally the app still auto-creates missing tables on startup for convenience.
+In production (and in Docker) set `AUTO_CREATE_TABLES=0` so the schema is
+managed exclusively by migrations.
+
 ### Tests
 
 ```bash
@@ -68,7 +96,8 @@ python -m pytest tests/
 - **Framework**: Python — FastAPI
 - **Frontend**: Server-rendered Jinja2 templates, responsive CSS (no JS build step)
 - **Database**: PostgreSQL (SQLite fallback for development/tests)
-- **ORM**: SQLAlchemy 2.0
+- **ORM**: SQLAlchemy 2.0 with Alembic migrations
+- **Deployment**: Docker Compose (app + PostgreSQL 16, migrations run on boot)
 - **Authentication**: Cookie-based sessions (signed via `itsdangerous`) with roles; PBKDF2-SHA256 password hashing
 - **Logging**: Python `logging` + database-backed audit log
 - **API Documentation**: OpenAPI / Swagger UI at `/docs`
@@ -93,6 +122,9 @@ app/
   templates/          # Jinja2 role-based dashboards
   static/style.css    # mobile-friendly styling
 tests/                # pytest suite for auth, scheduling, attendance rules
+alembic/              # database migrations (alembic upgrade head)
+Dockerfile            # app image
+docker-compose.yml    # app + PostgreSQL 16 stack
 ```
 
 ### Data Model
