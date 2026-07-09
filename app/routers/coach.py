@@ -1,9 +1,12 @@
+import uuid
 from datetime import date
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 
+from .. import config
 from ..audit import log_action
 from ..models import (
     AttendanceStatus,
@@ -12,6 +15,7 @@ from ..models import (
     Coach,
     Exercise,
     PlanMonth,
+    ProgramTemplate,
     ProgramWeek,
     Role,
     TimeSection,
@@ -21,6 +25,8 @@ from ..models import (
 )
 from ..security import get_db, require_role
 from ..services import attendance as attendance_svc
+from ..services import notifications as notifications_svc
+from ..services import programs as programs_svc
 from ..services import scheduling
 from ..services.scheduling import BookingError
 from ..utils import flash, now
@@ -72,6 +78,34 @@ def dashboard(request: Request, coach: Coach = Depends(current_coach), db=Depend
                   client_count=len(coach.clients))
 
 
+@router.get("/calendar")
+def calendar_view(request: Request, year: int | None = None, month: int | None = None,
+                  coach: Coach = Depends(current_coach), db=Depends(get_db)):
+    from sqlalchemy import extract
+
+    from ..utils import WEEKDAY_NAMES, month_grid, shift_month
+
+    current = now()
+    year = year or current.year
+    month = month if month and 1 <= month <= 12 else current.month
+    bookings = db.scalars(
+        select(Booking)
+        .join(TimeSection)
+        .where(Booking.coach_id == coach.id,
+               extract("year", Booking.date) == year,
+               extract("month", Booking.date) == month)
+        .order_by(Booking.date, TimeSection.index)
+    ).all()
+    by_day: dict = {}
+    for b in bookings:
+        by_day.setdefault(b.date, []).append(b)
+    return render(request, "coach/calendar.html", user=coach.user,
+                  grid=month_grid(year, month), by_day=by_day, bookings=bookings,
+                  year=year, month=month, today=current.date(),
+                  weekday_names=WEEKDAY_NAMES,
+                  prev_ym=shift_month(year, month, -1), next_ym=shift_month(year, month, 1))
+
+
 @router.get("/clients")
 def clients_page(request: Request, coach: Coach = Depends(current_coach), db=Depends(get_db)):
     clients = db.scalars(
@@ -95,10 +129,23 @@ def client_detail(request: Request, client_id: int, coach: Coach = Depends(curre
         select(ProgramWeek).where(ProgramWeek.client_id == client.id)
         .order_by(ProgramWeek.week_start.desc())
     ).all()
+    templates = db.scalars(
+        select(ProgramTemplate).where(ProgramTemplate.coach_id == coach.id)
+        .order_by(ProgramTemplate.title)
+    ).all()
     return render(request, "coach/client_detail.html", user=coach.user, client=client,
                   plan=plan, summary=summary, bookings=bookings, programs=programs,
-                  sections=_sections(db), current=current,
+                  templates=templates, sections=_sections(db), current=current,
                   attendance_statuses=list(AttendanceStatus))
+
+
+@router.get("/clients/{client_id}/progress")
+def client_progress(request: Request, client_id: int, coach: Coach = Depends(current_coach),
+                    db=Depends(get_db)):
+    from ..services import metrics
+    client = owned_client(db, coach, client_id)
+    return render(request, "coach/client_progress.html", user=coach.user, client=client,
+                  **metrics.progress_context(db, client))
 
 
 @router.post("/clients/{client_id}/plan")
@@ -185,6 +232,27 @@ def mark_attendance(request: Request, booking_id: int, status: str = Form(...),
 
 # --- Exercise library ---
 
+def _save_media(upload: UploadFile) -> str:
+    """Validate and store an uploaded demo file; returns the stored filename."""
+    ext = Path(upload.filename).suffix.lower()
+    if ext not in config.ALLOWED_MEDIA_EXTENSIONS:
+        allowed = ", ".join(sorted(config.ALLOWED_MEDIA_EXTENSIONS))
+        raise ValueError(f"File type '{ext or 'unknown'}' is not allowed. Use one of: {allowed}.")
+    limit = config.MAX_UPLOAD_MB * 1024 * 1024
+    filename = f"{uuid.uuid4().hex}{ext}"
+    target = Path(config.UPLOAD_DIR) / filename
+    target.parent.mkdir(parents=True, exist_ok=True)
+    written = 0
+    with target.open("wb") as out:
+        while chunk := upload.file.read(1024 * 1024):
+            written += len(chunk)
+            if written > limit:
+                out.close()
+                target.unlink(missing_ok=True)
+                raise ValueError(f"File is larger than the {config.MAX_UPLOAD_MB} MB limit.")
+            out.write(chunk)
+    return filename
+
 @router.get("/exercises")
 def exercises_page(request: Request, coach: Coach = Depends(current_coach), db=Depends(get_db)):
     exercises = db.scalars(select(Exercise).order_by(Exercise.name)).all()
@@ -193,17 +261,103 @@ def exercises_page(request: Request, coach: Coach = Depends(current_coach), db=D
 
 @router.post("/exercises")
 def create_exercise(request: Request, name: str = Form(...), description: str = Form(""),
-                    tags: str = Form(""), coach: Coach = Depends(current_coach),
-                    db=Depends(get_db)):
+                    tags: str = Form(""), video_url: str = Form(""),
+                    media: UploadFile | None = File(None),
+                    coach: Coach = Depends(current_coach), db=Depends(get_db)):
     name = name.strip()
     if db.scalar(select(Exercise).where(Exercise.name == name)):
         flash(request, f"Exercise '{name}' already exists.", "error")
-    else:
-        db.add(Exercise(name=name, description=description.strip(), tags=tags.strip()))
-        log_action(db, coach.user, "exercise.create", detail=name)
-        db.commit()
-        flash(request, f"Exercise '{name}' added.", "success")
+        return RedirectResponse("/coach/exercises", status_code=303)
+    exercise = Exercise(name=name, description=description.strip(), tags=tags.strip(),
+                        video_url=video_url.strip())
+    try:
+        if media and media.filename:
+            exercise.media_path = _save_media(media)
+    except ValueError as exc:
+        flash(request, str(exc), "error")
+        return RedirectResponse("/coach/exercises", status_code=303)
+    db.add(exercise)
+    log_action(db, coach.user, "exercise.create", detail=name)
+    db.commit()
+    flash(request, f"Exercise '{name}' added.", "success")
     return RedirectResponse("/coach/exercises", status_code=303)
+
+
+@router.post("/exercises/{exercise_id}/media")
+def update_exercise_media(request: Request, exercise_id: int, video_url: str = Form(""),
+                          media: UploadFile | None = File(None),
+                          coach: Coach = Depends(current_coach), db=Depends(get_db)):
+    exercise = db.get(Exercise, exercise_id)
+    if exercise is None:
+        raise HTTPException(404)
+    exercise.video_url = video_url.strip()
+    try:
+        if media and media.filename:
+            exercise.media_path = _save_media(media)
+    except ValueError as exc:
+        flash(request, str(exc), "error")
+        return RedirectResponse("/coach/exercises", status_code=303)
+    log_action(db, coach.user, "exercise.media", "exercise", exercise.id,
+               f"url={exercise.video_url or '-'} file={exercise.media_path or '-'}")
+    db.commit()
+    flash(request, f"Demo media updated for '{exercise.name}'.", "success")
+    return RedirectResponse("/coach/exercises", status_code=303)
+
+
+# --- Program templates ---
+
+def owned_template(db, coach: Coach, template_id: int) -> ProgramTemplate:
+    template = db.get(ProgramTemplate, template_id)
+    if template is None:
+        raise HTTPException(404)
+    if template.coach_id != coach.id:
+        raise HTTPException(403, "This template belongs to another coach.")
+    return template
+
+
+@router.get("/templates")
+def templates_page(request: Request, coach: Coach = Depends(current_coach), db=Depends(get_db)):
+    templates = db.scalars(
+        select(ProgramTemplate).where(ProgramTemplate.coach_id == coach.id)
+        .order_by(ProgramTemplate.title)
+    ).all()
+    clients = db.scalars(
+        select(Client).join(User, Client.user_id == User.id)
+        .where(Client.coach_id == coach.id).order_by(User.full_name)
+    ).all()
+    return render(request, "coach/templates.html", user=coach.user,
+                  templates=templates, clients=clients)
+
+
+@router.post("/programs/{week_id}/template")
+def save_as_template(request: Request, week_id: int, title: str = Form(""),
+                     coach: Coach = Depends(current_coach), db=Depends(get_db)):
+    week = owned_program(db, coach, week_id)
+    template = programs_svc.save_week_as_template(db, week, title, coach.user)
+    flash(request, f"Template '{template.title}' saved — apply it to any client.", "success")
+    return RedirectResponse("/coach/templates", status_code=303)
+
+
+@router.post("/clients/{client_id}/programs/from-template")
+def apply_template(request: Request, client_id: int, template_id: int = Form(...),
+                   week_start: date = Form(...), coach: Coach = Depends(current_coach),
+                   db=Depends(get_db)):
+    client = owned_client(db, coach, client_id)
+    template = owned_template(db, coach, template_id)
+    week = programs_svc.apply_template(db, template, client, week_start, coach.user)
+    flash(request, f"Applied '{template.title}' to {client.user.full_name}.", "success")
+    return RedirectResponse(f"/coach/programs/{week.id}", status_code=303)
+
+
+@router.post("/templates/{template_id}/delete")
+def delete_template(request: Request, template_id: int,
+                    coach: Coach = Depends(current_coach), db=Depends(get_db)):
+    template = owned_template(db, coach, template_id)
+    log_action(db, coach.user, "template.delete", "program_template", template.id, template.title)
+    db.delete(template)
+    db.commit()
+    flash(request, "Template deleted.", "success")
+    return RedirectResponse("/coach/templates", status_code=303)
 
 
 # --- Program builder ---
@@ -230,6 +384,7 @@ def create_program(request: Request, client_id: int, week_start: date = Form(...
         db.add(WorkoutDay(program_week_id=week.id, day_index=day_index))
     log_action(db, coach.user, "program.create", "program_week", week.id,
                f"client={client.id} week_start={week_start}")
+    notifications_svc.notify_program_published(db, week)
     db.commit()
     return RedirectResponse(f"/coach/programs/{week.id}", status_code=303)
 

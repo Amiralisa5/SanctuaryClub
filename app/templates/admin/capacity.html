@@ -1,32 +1,36 @@
 {% extends "base.html" %}
 {% block title %}Capacity — SanctuaryClub{% endblock %}
 {% block content %}
-<h1>Capacity configuration</h1>
+<div class="page-head">
+  <h1>Capacity</h1>
+  <div class="sub">How many people can train in each 2-hour slot.</div>
+</div>
 
 <div class="grid2">
   <div class="card">
     <h2>Defaults</h2>
     <form method="post" action="/admin/capacity/defaults">
-      <label>Gym-wide capacity per section
+      <label>Gym-wide capacity per slot
         <input type="number" name="gym_default" min="0" value="{{ defaults.gym }}" required></label>
-      <label>Per-coach capacity per section
+      <label>Per-coach capacity per slot
         <input type="number" name="coach_default" min="0" value="{{ defaults.coach }}" required></label>
       <button class="btn primary">Save defaults</button>
     </form>
   </div>
   <div class="card">
-    <h2>Override for a date/section</h2>
+    <h2>Override a date / slot</h2>
     <form method="post" action="/admin/capacity/overrides">
       <label>Date <input type="date" name="override_date" required></label>
-      <label>Section
-        <select name="section_id">
-          {% for s in sections %}<option value="{{ s.id }}">{{ s.label }}</option>{% endfor %}
-        </select>
-      </label>
-      <label>Coach (leave empty for gym-wide)
+      <div class="eyebrow">Time slot</div>
+      <div class="chip-group">
+        {% for s in sections %}
+        <label class="chip"><input type="radio" name="section_id" value="{{ s.id }}" {{ 'checked' if loop.first }}>{{ s.label }}</label>
+        {% endfor %}
+      </div>
+      <label>Scope
         <select name="coach_id">
-          <option value="">— gym-wide —</option>
-          {% for c in coaches %}<option value="{{ c.id }}">{{ c.user.full_name }}</option>{% endfor %}
+          <option value="">Gym-wide</option>
+          {% for c in coaches %}<option value="{{ c.id }}">Coach — {{ c.user.full_name }}</option>{% endfor %}
         </select>
       </label>
       <label>Capacity <input type="number" name="capacity" min="0" required></label>
@@ -37,25 +41,19 @@
 
 <div class="card">
   <h2>Active overrides</h2>
-  <div class="table-wrap">
-  <table>
-    <tr><th>Date</th><th>Section</th><th>Scope</th><th>Capacity</th><th></th></tr>
-    {% for o in overrides %}
-    <tr>
-      <td>{{ o.date }}</td>
-      <td>{{ o.section.label }}</td>
-      <td>{{ o.coach.user.full_name if o.coach else 'Gym-wide' }}</td>
-      <td>{{ o.capacity }}</td>
-      <td>
-        <form method="post" action="/admin/capacity/overrides/{{ o.id }}/delete" class="inline">
-          <button class="btn danger">Delete</button>
-        </form>
-      </td>
-    </tr>
-    {% else %}
-    <tr><td colspan="5" class="muted">No overrides configured.</td></tr>
-    {% endfor %}
-  </table>
+  {% for o in overrides %}
+  <div class="list-row">
+    <span class="slot-chip"><span class="d">{{ o.date.strftime('%b %-d') }}</span>{{ o.section.label[:5] }}</span>
+    <div class="grow">
+      <div class="title">{{ o.coach.user.full_name if o.coach else 'Gym-wide' }}</div>
+      <div class="sub">{{ o.section.label }} · capacity {{ o.capacity }}</div>
+    </div>
+    <form method="post" action="/admin/capacity/overrides/{{ o.id }}/delete" class="inline">
+      <button class="btn danger sm">Delete</button>
+    </form>
   </div>
+  {% else %}
+  <div class="empty"><span class="glyph">🎛️</span>No overrides — defaults apply everywhere.</div>
+  {% endfor %}
 </div>
 {% endblock %}

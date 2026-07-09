@@ -8,6 +8,7 @@ import pytest
 # and the background scheduler stays off.
 _tmpdir = tempfile.mkdtemp(prefix="sanctuary-test-")
 os.environ["DATABASE_URL"] = f"sqlite:///{_tmpdir}/test.db"
+os.environ["UPLOAD_DIR"] = f"{_tmpdir}/media"
 os.environ["DISABLE_SCHEDULER"] = "1"
 os.environ["ADMIN_EMAIL"] = "admin@test.local"
 os.environ["ADMIN_PASSWORD"] = "admin-secret"

@@ -32,6 +32,20 @@ ADMIN_NAME = os.environ.get("ADMIN_NAME", "Sanctuary Admin")
 
 DISABLE_SCHEDULER = os.environ.get("DISABLE_SCHEDULER", "") == "1"
 
+# Email notifications: with SMTP_HOST set, mail is sent via SMTP; otherwise the
+# console backend logs the message and stores it in the email log only.
+SMTP_HOST = os.environ.get("SMTP_HOST", "")
+SMTP_PORT = int(os.environ.get("SMTP_PORT", "587"))
+SMTP_USER = os.environ.get("SMTP_USER", "")
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
+SMTP_STARTTLS = os.environ.get("SMTP_STARTTLS", "1") == "1"
+EMAIL_FROM = os.environ.get("EMAIL_FROM", "no-reply@sanctuary.club")
+
+# Media uploads (exercise demo videos/images), served from /media
+UPLOAD_DIR = os.environ.get("UPLOAD_DIR", "./media")
+MAX_UPLOAD_MB = int(os.environ.get("MAX_UPLOAD_MB", "50"))
+ALLOWED_MEDIA_EXTENSIONS = {".mp4", ".mov", ".webm", ".m4v", ".gif", ".jpg", ".jpeg", ".png", ".webp"}
+
 # When "1" (default), tables are created via SQLAlchemy create_all on startup —
 # convenient for local dev and tests. Set to "0" in production and manage the
 # schema with Alembic migrations instead (alembic upgrade head).

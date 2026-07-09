@@ -1,29 +1,53 @@
 {% extends "base.html" %}
 {% block title %}Exercise library — SanctuaryClub{% endblock %}
 {% block content %}
-<h1>Exercise library</h1>
+<div class="page-head">
+  <h1>Exercise library</h1>
+  <div class="sub">{{ exercises|length }} exercises, shared across coaches — with demo videos.</div>
+</div>
+
 <div class="grid2">
   <div class="card">
     <h2>Add exercise</h2>
-    <form method="post" action="/coach/exercises">
-      <label>Name <input name="name" required></label>
-      <label>Description <textarea name="description" rows="2"></textarea></label>
-      <label>Tags (comma-separated) <input name="tags" placeholder="legs, barbell"></label>
-      <button class="btn primary">Add</button>
+    <form method="post" action="/coach/exercises" enctype="multipart/form-data">
+      <label>Name <input name="name" required placeholder="e.g. Romanian deadlift"></label>
+      <label>Description <textarea name="description" rows="2" placeholder="Cues, setup, safety notes…"></textarea></label>
+      <label>Tags <input name="tags" placeholder="legs, barbell, hinge"></label>
+      <label>Demo video link <input type="url" name="video_url" placeholder="https://youtube.com/…"></label>
+      <label>Or upload a demo (video/image) <input type="file" name="media" accept="video/*,image/*"></label>
+      <button class="btn primary">Add to library</button>
     </form>
   </div>
   <div class="card">
     <h2>Library</h2>
-    <div class="table-wrap">
-    <table>
-      <tr><th>Name</th><th>Tags</th><th>Description</th></tr>
-      {% for e in exercises %}
-      <tr><td>{{ e.name }}</td><td class="muted">{{ e.tags }}</td><td class="muted">{{ e.description }}</td></tr>
-      {% else %}
-      <tr><td colspan="3" class="muted">No exercises yet.</td></tr>
-      {% endfor %}
-    </table>
+    {% for e in exercises %}
+    <div class="list-row">
+      <span class="avatar">🏋️</span>
+      <div class="grow">
+        <div class="title">{{ e.name }}
+          {% if e.demo_url %}<a href="{{ e.demo_url }}" target="_blank" rel="noopener" class="badge badge-BOOKED" style="text-decoration:none;">▶ demo</a>{% endif %}
+        </div>
+        {% if e.description %}<div class="sub">{{ e.description }}</div>{% endif %}
+        <details class="reveal">
+          <summary>Demo media</summary>
+          <div class="reveal-body">
+            <form method="post" action="/coach/exercises/{{ e.id }}/media" enctype="multipart/form-data">
+              <label>Video link <input type="url" name="video_url" value="{{ e.video_url }}" placeholder="https://…"></label>
+              <label>Upload file <input type="file" name="media" accept="video/*,image/*"></label>
+              <button class="btn sm">Save media</button>
+            </form>
+          </div>
+        </details>
+      </div>
+      {% if e.tags %}
+      <div class="row" style="gap:.3rem;">
+        {% for t in e.tags.split(',') %}<span class="setchip">{{ t.strip() }}</span>{% endfor %}
+      </div>
+      {% endif %}
     </div>
+    {% else %}
+    <div class="empty"><span class="glyph">🏋️</span>No exercises yet — add the first one.</div>
+    {% endfor %}
   </div>
 </div>
 {% endblock %}

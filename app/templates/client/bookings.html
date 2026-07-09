@@ -1,88 +1,97 @@
 {% extends "base.html" %}
-{% block title %}My bookings — SanctuaryClub{% endblock %}
+{% block title %}Bookings — SanctuaryClub{% endblock %}
 {% block content %}
-<h1>My bookings</h1>
-<p class="muted">
-  {% if plan %}Plan {{ current.year }}-{{ '%02d'|format(current.month) }}: {{ used }} / {{ plan.quota_label }} sessions used.
-  {% else %}No plan for this month — ask your coach to set one before booking.{% endif %}
-</p>
+<div class="page-head">
+  <h1>Bookings</h1>
+  <div class="sub">
+    {% if plan %}{{ used }} of {{ plan.quota_label }} sessions used in {{ current.strftime('%B') }}.
+    {% else %}No plan for this month — ask your coach to set one before booking.{% endif %}
+  </div>
+</div>
+
+{% if plan and plan.quota %}
+<div class="card" style="padding-bottom:1rem;">
+  <div class="meter-row"><span>{{ current.strftime('%B') }} plan</span><span><strong>{{ used }}</strong> / {{ plan.quota }}</span></div>
+  <div class="meter"><span style="width: {{ [used / plan.quota * 100, 100]|min }}%"></span></div>
+</div>
+{% endif %}
 
 <div class="grid2">
   <div class="card">
     <h2>Book a session</h2>
     <form method="post" action="/client/bookings">
       <label>Date <input type="date" name="booking_date" required></label>
-      <label>Section
-        <select name="section_id">
-          {% for s in sections %}<option value="{{ s.id }}">{{ s.label }}</option>{% endfor %}
-        </select>
-      </label>
-      <button class="btn primary">Book</button>
+      <div class="eyebrow">Time slot</div>
+      <div class="chip-group">
+        {% for s in sections %}
+        <label class="chip"><input type="radio" name="section_id" value="{{ s.id }}" {{ 'checked' if loop.first }}>{{ s.label }}</label>
+        {% endfor %}
+      </div>
+      <button class="btn primary block">Book session</button>
     </form>
   </div>
 
   <div class="card">
-    <h2>Bulk monthly wizard</h2>
+    <h2>Monthly wizard</h2>
+    <p class="muted" style="margin-top:0;">Pick your training days once — we book the whole month.</p>
     <form method="post" action="/client/bookings/wizard">
-      <div class="grid2">
-        <label>Year <input type="number" name="year" value="{{ current.year }}" required></label>
-        <label>Month <input type="number" name="month" min="1" max="12" value="{{ current.month }}" required></label>
+      <div class="row">
+        <label style="flex:1;">Year <input type="number" name="year" value="{{ current.year }}" required></label>
+        <label style="flex:1;">Month <input type="number" name="month" min="1" max="12" value="{{ current.month }}" required></label>
       </div>
-      <div class="checkboxes">
+      <div class="eyebrow">Training days</div>
+      <div class="chip-group">
         {% for wd, name in [(5,'Sat'),(6,'Sun'),(0,'Mon'),(1,'Tue'),(2,'Wed'),(3,'Thu'),(4,'Fri')] %}
-        <label><input type="checkbox" name="weekdays" value="{{ wd }}"> {{ name }}</label>
+        <label class="chip day"><input type="checkbox" name="weekdays" value="{{ wd }}">{{ name }}</label>
         {% endfor %}
       </div>
-      <label>Section
-        <select name="section_id">
-          {% for s in sections %}<option value="{{ s.id }}">{{ s.label }}</option>{% endfor %}
-        </select>
-      </label>
-      <button class="btn primary">Book all matching days</button>
+      <div class="eyebrow">Time slot</div>
+      <div class="chip-group">
+        {% for s in sections %}
+        <label class="chip"><input type="radio" name="section_id" value="{{ s.id }}" {{ 'checked' if loop.first }}>{{ s.label }}</label>
+        {% endfor %}
+      </div>
+      <button class="btn primary block">Book all matching days</button>
     </form>
   </div>
 </div>
 
 <div class="card">
-  <h2>Bookings</h2>
-  <p class="muted">Rescheduling and cancellation close 2 hours before the session starts.</p>
-  <div class="table-wrap">
-  <table>
-    <tr><th>Date</th><th>Section</th><th>Status</th><th>Attendance</th><th>Actions</th></tr>
-    {% for b in bookings %}
-    <tr>
-      <td>{{ b.date }}</td>
-      <td>{{ b.section.label }}</td>
-      <td><span class="badge badge-{{ b.status.value }}">{{ b.status.value }}</span></td>
-      <td>
-        {% if b.attendance %}
-          <span class="badge badge-{{ b.attendance.status.value }}">{{ b.attendance.status.value }}</span>
-        {% else %}<span class="muted">—</span>{% endif %}
-      </td>
-      <td>
-        {% if b.id in modifiable_ids %}
-        <details class="inline">
-          <summary class="btn">Reschedule</summary>
+  <h2>Your sessions</h2>
+  <p class="muted" style="margin-top:0;">Rescheduling and cancellation close 2 hours before start.</p>
+  {% for b in bookings %}
+  <div class="list-row">
+    <span class="slot-chip"><span class="d">{{ b.date.strftime('%b %-d') }}</span>{{ b.section.label[:5] }}</span>
+    <div class="grow">
+      <div class="title">{{ b.date.strftime('%A') }} <span class="badge badge-{{ b.status.value }}">{{ b.status.value }}</span></div>
+      <div class="sub">{{ b.section.label }}
+        {% if b.attendance %} · <span class="badge badge-{{ b.attendance.status.value }}">{{ b.attendance.status.value }}</span>{% endif %}
+      </div>
+      {% if b.id in modifiable_ids %}
+      <details class="reveal">
+        <summary>Reschedule</summary>
+        <div class="reveal-body">
           <form method="post" action="/client/bookings/{{ b.id }}/reschedule">
             <label>New date <input type="date" name="new_date" required></label>
-            <label>New section
-              <select name="new_section_id">
-                {% for s in sections %}<option value="{{ s.id }}">{{ s.label }}</option>{% endfor %}
-              </select>
-            </label>
-            <button class="btn primary">Move</button>
+            <div class="chip-group">
+              {% for s in sections %}
+              <label class="chip"><input type="radio" name="new_section_id" value="{{ s.id }}" {{ 'checked' if s.id == b.section_id }}>{{ s.label }}</label>
+              {% endfor %}
+            </div>
+            <button class="btn primary sm">Move session</button>
           </form>
-        </details>
-        <form method="post" action="/client/bookings/{{ b.id }}/cancel" class="inline">
-          <button class="btn danger">Cancel</button>
-        </form>
-        {% endif %}
-      </td>
-    </tr>
-    {% else %}
-    <tr><td colspan="5" class="muted">No bookings yet.</td></tr>
-    {% endfor %}
-  </table>
+        </div>
+      </details>
+      {% endif %}
+    </div>
+    {% if b.id in modifiable_ids %}
+    <form method="post" action="/client/bookings/{{ b.id }}/cancel" class="inline">
+      <button class="btn danger sm">Cancel</button>
+    </form>
+    {% endif %}
   </div>
+  {% else %}
+  <div class="empty"><span class="glyph">📅</span>No bookings yet — book your first session above.</div>
+  {% endfor %}
 </div>
 {% endblock %}

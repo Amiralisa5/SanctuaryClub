@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% import "_calendar.html" as cal %}
+{% block title %}Calendar — SanctuaryClub{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>My calendar</h1>
+  <div class="sub">Your sessions and attendance at a glance.</div>
+</div>
+
+<div class="card cal-card">
+  {{ cal.month_nav('/client/calendar', year, month, prev_ym, next_ym) }}
+  {{ cal.grid_open(weekday_names) }}
+  <div class="cal-grid">
+    {% for week in grid %}{% for d in week %}
+    <div class="cal-cell {{ 'dim' if d.month != month }} {{ 'today' if d == today }}">
+      <span class="cal-date">{{ d.day }}</span>
+      {% for b in by_day.get(d, []) %}
+        {% set tone = b.attendance.status.value if b.attendance else ('CANCELLED' if b.status.value == 'CANCELLED' else 'BOOKED') %}
+        <a class="cal-ev ev-{{ tone }}" href="/client/checkin/{{ b.id }}"
+           title="{{ b.section.label }} ({{ tone }})">{{ b.section.label[:5] }}</a>
+      {% endfor %}
+    </div>
+    {% endfor %}{% endfor %}
+  </div>
+  <div class="cal-legend">
+    <span class="badge badge-BOOKED">BOOKED</span>
+    <span class="badge badge-PRESENT">PRESENT</span>
+    <span class="badge badge-ABSENT">ABSENT</span>
+    <span class="badge badge-EXCUSED">EXCUSED</span>
+    <span class="badge badge-CANCELLED">CANCELLED</span>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Agenda</h2>
+  {% for b in bookings %}
+  <div class="list-row">
+    <span class="slot-chip"><span class="d">{{ b.date.strftime('%b %-d') }}</span>{{ b.section.label[:5] }}</span>
+    <div class="grow">
+      <div class="title">{{ b.date.strftime('%A') }}</div>
+      <div class="sub">{{ b.section.label }}</div>
+    </div>
+    {% if b.attendance %}
+      <span class="badge badge-{{ b.attendance.status.value }}">{{ b.attendance.status.value }}</span>
+    {% else %}
+      <span class="badge badge-{{ b.status.value }}">{{ b.status.value }}</span>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="empty"><span class="glyph">📅</span>No sessions this month. <a href="/client/bookings">Book one →</a></div>
+  {% endfor %}
+</div>
+{% endblock %}

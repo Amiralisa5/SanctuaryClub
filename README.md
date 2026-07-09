@@ -62,6 +62,24 @@ Locally the app still auto-creates missing tables on startup for convenience.
 In production (and in Docker) set `AUTO_CREATE_TABLES=0` so the schema is
 managed exclusively by migrations.
 
+### Email notifications
+
+Notifications fire on booking created/cancelled/rescheduled, program published,
+and auto-absent marking. Without configuration they use the console backend
+(logged and recorded in **Admin → Emails**). To deliver for real, set:
+
+```bash
+export SMTP_HOST=smtp.example.com SMTP_PORT=587 SMTP_STARTTLS=1
+export SMTP_USER=... SMTP_PASSWORD=... EMAIL_FROM=no-reply@yourgym.com
+```
+
+### Media uploads
+
+Exercise demo videos/images are stored in `UPLOAD_DIR` (default `./media`,
+served at `/media`). `MAX_UPLOAD_MB` (default 50) caps file size; only common
+video/image extensions are accepted. External links (YouTube/Vimeo) work
+without any configuration.
+
 ### Tests
 
 ```bash
@@ -84,12 +102,12 @@ python -m pytest tests/
 - ✅ Web UI with role-based dashboards
 
 ### Should Have
-- 🔲 Program templates
+- ✅ Program templates
 - ✅ Exercise library with tags
-- 🔲 Calendar views for coach and client
-- 🔲 Email notifications
-- 🔲 Progress metrics dashboard
-- 🔲 Media uploads (demo videos/links)
+- ✅ Calendar views for coach and client
+- ✅ Email notifications (SMTP or console backend, logged in admin UI)
+- ✅ Progress metrics dashboard
+- ✅ Media uploads (demo videos/links)
 - ✅ Slot capacity enforcement (gym-wide and per-coach)
 
 ## Technical Stack

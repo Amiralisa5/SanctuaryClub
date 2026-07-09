@@ -1,7 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Users — SanctuaryClub{% endblock %}
 {% block content %}
-<h1>Coaches &amp; clients</h1>
+<div class="page-head">
+  <h1>Coaches &amp; clients</h1>
+  <div class="sub">Create accounts, assign coaches, manage access.</div>
+</div>
 
 <div class="grid2">
   <div class="card">
@@ -31,53 +34,47 @@
 
 <div class="card">
   <h2>Coaches</h2>
-  <div class="table-wrap">
-  <table>
-    <tr><th>Name</th><th>Email</th><th>Clients</th><th>Status</th><th></th></tr>
-    {% for c in coaches %}
-    <tr>
-      <td>{{ c.user.full_name }}</td>
-      <td>{{ c.user.email }}</td>
-      <td>{{ c.clients|length }}</td>
-      <td>{{ 'Active' if c.user.is_active else 'Inactive' }}</td>
-      <td>
-        <form method="post" action="/admin/users/{{ c.user.id }}/toggle" class="inline">
-          <button class="btn danger">{{ 'Deactivate' if c.user.is_active else 'Activate' }}</button>
-        </form>
-      </td>
-    </tr>
-    {% endfor %}
-  </table>
+  {% for c in coaches %}
+  <div class="list-row">
+    <span class="avatar">{{ c.user.full_name.split()|map('first')|join('')|upper|truncate(2, True, '') }}</span>
+    <div class="grow">
+      <div class="title">{{ c.user.full_name }}
+        {% if not c.user.is_active %}<span class="badge badge-CANCELLED">INACTIVE</span>{% endif %}
+      </div>
+      <div class="sub">{{ c.user.email }} · {{ c.clients|length }} client(s)</div>
+    </div>
+    <form method="post" action="/admin/users/{{ c.user.id }}/toggle" class="inline">
+      <button class="btn {{ 'danger' if c.user.is_active }} sm">{{ 'Deactivate' if c.user.is_active else 'Activate' }}</button>
+    </form>
   </div>
+  {% else %}
+  <div class="empty"><span class="glyph">🧑‍🏫</span>No coaches yet.</div>
+  {% endfor %}
 </div>
 
 <div class="card">
   <h2>Clients</h2>
-  <div class="table-wrap">
-  <table>
-    <tr><th>Name</th><th>Email</th><th>Coach</th><th>Status</th><th>Reassign</th><th></th></tr>
-    {% for cl in clients %}
-    <tr>
-      <td>{{ cl.user.full_name }}</td>
-      <td>{{ cl.user.email }}</td>
-      <td>{{ cl.coach.user.full_name }}</td>
-      <td>{{ 'Active' if cl.user.is_active else 'Inactive' }}</td>
-      <td>
-        <form method="post" action="/admin/clients/{{ cl.id }}/reassign" class="inline">
-          <select name="coach_id">
-            {% for c in coaches %}<option value="{{ c.id }}" {{ 'selected' if c.id == cl.coach_id }}>{{ c.user.full_name }}</option>{% endfor %}
-          </select>
-          <button class="btn">Move</button>
-        </form>
-      </td>
-      <td>
-        <form method="post" action="/admin/users/{{ cl.user.id }}/toggle" class="inline">
-          <button class="btn danger">{{ 'Deactivate' if cl.user.is_active else 'Activate' }}</button>
-        </form>
-      </td>
-    </tr>
-    {% endfor %}
-  </table>
+  {% for cl in clients %}
+  <div class="list-row">
+    <span class="avatar">{{ cl.user.full_name.split()|map('first')|join('')|upper|truncate(2, True, '') }}</span>
+    <div class="grow">
+      <div class="title">{{ cl.user.full_name }}
+        {% if not cl.user.is_active %}<span class="badge badge-CANCELLED">INACTIVE</span>{% endif %}
+      </div>
+      <div class="sub">{{ cl.user.email }} · Coach {{ cl.coach.user.full_name }}</div>
+    </div>
+    <form method="post" action="/admin/clients/{{ cl.id }}/reassign" class="inline">
+      <select name="coach_id">
+        {% for c in coaches %}<option value="{{ c.id }}" {{ 'selected' if c.id == cl.coach_id }}>{{ c.user.full_name }}</option>{% endfor %}
+      </select>
+      <button class="btn sm">Move</button>
+    </form>
+    <form method="post" action="/admin/users/{{ cl.user.id }}/toggle" class="inline">
+      <button class="btn {{ 'danger' if cl.user.is_active }} sm">{{ 'Deactivate' if cl.user.is_active else 'Activate' }}</button>
+    </form>
   </div>
+  {% else %}
+  <div class="empty"><span class="glyph">👥</span>No clients yet.</div>
+  {% endfor %}
 </div>
 {% endblock %}
