@@ -39,6 +39,8 @@ def login(request: Request, email: str = Form(...), password: str = Form(...),
         flash(request, "Invalid email or password.", "error")
         return RedirectResponse("/login", status_code=303)
 
+    # Fresh session on every login: drops stale flashes and prevents fixation.
+    request.session.clear()
     request.session["uid"] = user.id
     log_action(db, user, "auth.login", "user", user.id)
     db.commit()

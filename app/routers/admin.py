@@ -12,6 +12,7 @@ from ..models import (
     CapacityOverride,
     Client,
     Coach,
+    EmailLog,
     Role,
     TimeSection,
     User,
@@ -203,3 +204,11 @@ def delete_override(request: Request, override_id: int, user=Depends(_user), db=
 def audit_page(request: Request, user=Depends(_user), db=Depends(get_db)):
     logs = db.scalars(select(AuditLog).order_by(AuditLog.created_at.desc()).limit(200)).all()
     return render(request, "admin/audit.html", user=user, logs=logs)
+
+
+@router.get("/emails")
+def emails_page(request: Request, user=Depends(_user), db=Depends(get_db)):
+    emails = db.scalars(select(EmailLog).order_by(EmailLog.created_at.desc()).limit(100)).all()
+    smtp_configured = bool(config.SMTP_HOST)
+    return render(request, "admin/emails.html", user=user, emails=emails,
+                  smtp_configured=smtp_configured)

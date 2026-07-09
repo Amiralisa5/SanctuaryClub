@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Email log — SanctuaryClub{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Email notifications</h1>
+  <div class="sub">
+    {% if smtp_configured %}SMTP delivery is configured.
+    {% else %}Console backend active — set <code>SMTP_HOST</code> (and friends) to deliver for real; every message is still recorded here.{% endif %}
+  </div>
+</div>
+<div class="card">
+  {% for e in emails %}
+  <div class="list-row">
+    <span class="avatar">✉️</span>
+    <div class="grow">
+      <div class="title">{{ e.subject }}</div>
+      <div class="sub">to {{ e.to_email }} · {{ e.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+      <details class="reveal">
+        <summary>Body</summary>
+        <div class="reveal-body"><pre style="white-space:pre-wrap; font-family:inherit; margin:0;">{{ e.body }}</pre></div>
+      </details>
+    </div>
+    {% if e.sent %}
+      <span class="badge badge-PRESENT">SENT</span>
+    {% elif e.error %}
+      <span class="badge badge-ABSENT" title="{{ e.error }}">FAILED</span>
+    {% else %}
+      <span class="badge badge-EXCUSED">LOGGED</span>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="empty"><span class="glyph">✉️</span>No notifications yet — they appear when bookings and programs change.</div>
+  {% endfor %}
+</div>
+{% endblock %}

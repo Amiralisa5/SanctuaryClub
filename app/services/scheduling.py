@@ -137,6 +137,8 @@ def _check_slot(db, client: Client, d: date, section: TimeSection,
 
 
 def create_booking(db, client: Client, d: date, section: TimeSection, actor: User) -> Booking:
+    from . import notifications
+
     _check_slot(db, client, d, section)
     booking = Booking(client_id=client.id, coach_id=client.coach_id, date=d,
                       section_id=section.id, created_at=utils.now())
@@ -144,6 +146,7 @@ def create_booking(db, client: Client, d: date, section: TimeSection, actor: Use
     db.flush()
     log_action(db, actor, "booking.create", "booking", booking.id,
                f"client={client.id} {d} {section.label}")
+    notifications.notify_booking_created(db, booking)
     db.commit()
     return booking
 
@@ -159,10 +162,13 @@ def _assert_modifiable(booking: Booking) -> None:
 
 
 def cancel_booking(db, booking: Booking, actor: User) -> None:
+    from . import notifications
+
     _assert_modifiable(booking)
     booking.status = BookingStatus.CANCELLED
     log_action(db, actor, "booking.cancel", "booking", booking.id,
                f"client={booking.client_id} {booking.date} {booking.section.label}")
+    notifications.notify_booking_cancelled(db, booking)
     db.commit()
 
 
@@ -171,11 +177,14 @@ def reschedule_booking(db, booking: Booking, new_date: date, new_section: TimeSe
     same_month = (booking.date.year, booking.date.month) == (new_date.year, new_date.month)
     # Quota only needs re-checking when the booking moves into a different month.
     _check_slot(db, booking.client, new_date, new_section, check_quota=not same_month)
-    old = f"{booking.date} {booking.section.label}"
+    from . import notifications
+
+    old = f"{booking.date.strftime('%A %Y-%m-%d')} {booking.section.label}"
     booking.date = new_date
     booking.section_id = new_section.id
     log_action(db, actor, "booking.reschedule", "booking", booking.id,
                f"client={booking.client_id} {old} -> {new_date} {new_section.label}")
+    notifications.notify_booking_rescheduled(db, booking, old)
     db.commit()
 
 

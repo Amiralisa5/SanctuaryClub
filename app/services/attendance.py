@@ -106,6 +106,8 @@ def auto_mark_absent(db) -> int:
         )
     ).all()
 
+    from . import notifications
+
     marked = 0
     for booking in candidates:
         deadline = section_end(booking.date, booking.section) + timedelta(
@@ -116,6 +118,7 @@ def auto_mark_absent(db) -> int:
                               auto=True, marked_at=current))
             log_action(db, None, "attendance.auto_absent", "booking", booking.id,
                        f"client={booking.client_id} {booking.date} {booking.section.label}")
+            notifications.notify_auto_absent(db, booking)
             marked += 1
     if marked:
         db.commit()
