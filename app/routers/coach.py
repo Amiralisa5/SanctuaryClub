@@ -12,6 +12,7 @@ from ..models import (
     Coach,
     Exercise,
     PlanMonth,
+    ProgramTemplate,
     ProgramWeek,
     Role,
     TimeSection,
@@ -21,6 +22,8 @@ from ..models import (
 )
 from ..security import get_db, require_role
 from ..services import attendance as attendance_svc
+from ..services import notifications as notifications_svc
+from ..services import programs as programs_svc
 from ..services import scheduling
 from ..services.scheduling import BookingError
 from ..utils import flash, now
@@ -123,9 +126,13 @@ def client_detail(request: Request, client_id: int, coach: Coach = Depends(curre
         select(ProgramWeek).where(ProgramWeek.client_id == client.id)
         .order_by(ProgramWeek.week_start.desc())
     ).all()
+    templates = db.scalars(
+        select(ProgramTemplate).where(ProgramTemplate.coach_id == coach.id)
+        .order_by(ProgramTemplate.title)
+    ).all()
     return render(request, "coach/client_detail.html", user=coach.user, client=client,
                   plan=plan, summary=summary, bookings=bookings, programs=programs,
-                  sections=_sections(db), current=current,
+                  templates=templates, sections=_sections(db), current=current,
                   attendance_statuses=list(AttendanceStatus))
 
 
@@ -234,6 +241,62 @@ def create_exercise(request: Request, name: str = Form(...), description: str = 
     return RedirectResponse("/coach/exercises", status_code=303)
 
 
+# --- Program templates ---
+
+def owned_template(db, coach: Coach, template_id: int) -> ProgramTemplate:
+    template = db.get(ProgramTemplate, template_id)
+    if template is None:
+        raise HTTPException(404)
+    if template.coach_id != coach.id:
+        raise HTTPException(403, "This template belongs to another coach.")
+    return template
+
+
+@router.get("/templates")
+def templates_page(request: Request, coach: Coach = Depends(current_coach), db=Depends(get_db)):
+    templates = db.scalars(
+        select(ProgramTemplate).where(ProgramTemplate.coach_id == coach.id)
+        .order_by(ProgramTemplate.title)
+    ).all()
+    clients = db.scalars(
+        select(Client).join(User, Client.user_id == User.id)
+        .where(Client.coach_id == coach.id).order_by(User.full_name)
+    ).all()
+    return render(request, "coach/templates.html", user=coach.user,
+                  templates=templates, clients=clients)
+
+
+@router.post("/programs/{week_id}/template")
+def save_as_template(request: Request, week_id: int, title: str = Form(""),
+                     coach: Coach = Depends(current_coach), db=Depends(get_db)):
+    week = owned_program(db, coach, week_id)
+    template = programs_svc.save_week_as_template(db, week, title, coach.user)
+    flash(request, f"Template '{template.title}' saved — apply it to any client.", "success")
+    return RedirectResponse("/coach/templates", status_code=303)
+
+
+@router.post("/clients/{client_id}/programs/from-template")
+def apply_template(request: Request, client_id: int, template_id: int = Form(...),
+                   week_start: date = Form(...), coach: Coach = Depends(current_coach),
+                   db=Depends(get_db)):
+    client = owned_client(db, coach, client_id)
+    template = owned_template(db, coach, template_id)
+    week = programs_svc.apply_template(db, template, client, week_start, coach.user)
+    flash(request, f"Applied '{template.title}' to {client.user.full_name}.", "success")
+    return RedirectResponse(f"/coach/programs/{week.id}", status_code=303)
+
+
+@router.post("/templates/{template_id}/delete")
+def delete_template(request: Request, template_id: int,
+                    coach: Coach = Depends(current_coach), db=Depends(get_db)):
+    template = owned_template(db, coach, template_id)
+    log_action(db, coach.user, "template.delete", "program_template", template.id, template.title)
+    db.delete(template)
+    db.commit()
+    flash(request, "Template deleted.", "success")
+    return RedirectResponse("/coach/templates", status_code=303)
+
+
 # --- Program builder ---
 
 def owned_program(db, coach: Coach, week_id: int) -> ProgramWeek:
@@ -258,6 +321,7 @@ def create_program(request: Request, client_id: int, week_start: date = Form(...
         db.add(WorkoutDay(program_week_id=week.id, day_index=day_index))
     log_action(db, coach.user, "program.create", "program_week", week.id,
                f"client={client.id} week_start={week_start}")
+    notifications_svc.notify_program_published(db, week)
     db.commit()
     return RedirectResponse(f"/coach/programs/{week.id}", status_code=303)
 

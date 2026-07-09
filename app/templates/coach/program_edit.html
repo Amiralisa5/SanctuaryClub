@@ -5,6 +5,10 @@
   <div class="eyebrow"><a href="/coach/clients/{{ week.client_id }}">← {{ week.client.user.full_name }}</a></div>
   <h1>{{ week.title }}</h1>
   <div class="sub">Week of {{ week.week_start }}</div>
+  <form method="post" action="/coach/programs/{{ week.id }}/template" class="row" style="margin-top:.6rem;">
+    <input name="title" placeholder="Template name (defaults to week title)" style="max-width:320px; margin:0;">
+    <button class="btn sm">📋 Save as template</button>
+  </form>
 </div>
 
 {% for day in week.days %}

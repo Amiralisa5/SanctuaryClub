@@ -214,6 +214,64 @@ class WorkoutItem(Base):
     exercise: Mapped[Exercise] = relationship()
 
 
+class ProgramTemplate(Base):
+    """A reusable copy of a program week, owned by a coach."""
+
+    __tablename__ = "program_templates"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    coach_id: Mapped[int] = mapped_column(ForeignKey("coaches.id"), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    notes: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+
+    coach: Mapped[Coach] = relationship()
+    days: Mapped[list["TemplateDay"]] = relationship(
+        back_populates="template", order_by="TemplateDay.day_index", cascade="all, delete-orphan"
+    )
+
+    @property
+    def exercise_count(self) -> int:
+        return sum(len(day.items) for day in self.days)
+
+
+class TemplateDay(Base):
+    __tablename__ = "template_days"
+    __table_args__ = (UniqueConstraint("template_id", "day_index"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    template_id: Mapped[int] = mapped_column(ForeignKey("program_templates.id"))
+    day_index: Mapped[int] = mapped_column(Integer)
+    title: Mapped[str] = mapped_column(String(200), default="")
+    notes: Mapped[str] = mapped_column(Text, default="")
+
+    template: Mapped[ProgramTemplate] = relationship(back_populates="days")
+    items: Mapped[list["TemplateItem"]] = relationship(
+        back_populates="day", order_by="TemplateItem.position", cascade="all, delete-orphan"
+    )
+
+    @property
+    def day_name(self) -> str:
+        return WorkoutDay.DAY_NAMES[self.day_index]
+
+
+class TemplateItem(Base):
+    __tablename__ = "template_items"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    template_day_id: Mapped[int] = mapped_column(ForeignKey("template_days.id"))
+    exercise_id: Mapped[int] = mapped_column(ForeignKey("exercises.id"))
+    position: Mapped[int] = mapped_column(Integer, default=0)
+    sets: Mapped[int] = mapped_column(Integer, default=3)
+    reps: Mapped[str] = mapped_column(String(50), default="10")
+    target_weight: Mapped[str] = mapped_column(String(50), default="")
+    rest_seconds: Mapped[int] = mapped_column(Integer, default=90)
+    notes: Mapped[str] = mapped_column(Text, default="")
+
+    day: Mapped[TemplateDay] = relationship(back_populates="items")
+    exercise: Mapped[Exercise] = relationship()
+
+
 class CapacityOverride(Base):
     """Capacity override for a specific date + section.
 
@@ -238,6 +296,21 @@ class Setting(Base):
 
     key: Mapped[str] = mapped_column(String(100), primary_key=True)
     value: Mapped[str] = mapped_column(String(255))
+
+
+class EmailLog(Base):
+    """Every notification the system produced; sent=True only after real SMTP delivery."""
+
+    __tablename__ = "email_logs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    to_email: Mapped[str] = mapped_column(String(255))
+    subject: Mapped[str] = mapped_column(String(255))
+    body: Mapped[str] = mapped_column(Text)
+    backend: Mapped[str] = mapped_column(String(20), default="console")  # console | smtp
+    sent: Mapped[bool] = mapped_column(Boolean, default=False)
+    error: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now, index=True)
 
 
 class AuditLog(Base):

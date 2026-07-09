@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Program templates — SanctuaryClub{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Program templates</h1>
+  <div class="sub">Build a week once, reuse it for any client. Save one from any program's edit page.</div>
+</div>
+
+{% for t in templates %}
+<div class="card">
+  <div class="list-row" style="border-bottom:none; padding-bottom:0;">
+    <span class="avatar">📋</span>
+    <div class="grow">
+      <div class="title">{{ t.title }}</div>
+      <div class="sub">{{ t.exercise_count }} exercise(s) across
+        {{ t.days|selectattr('items')|list|length }} training day(s)</div>
+    </div>
+    <form method="post" action="/coach/templates/{{ t.id }}/delete" class="inline">
+      <button class="btn danger sm">Delete</button>
+    </form>
+  </div>
+  {% for day in t.days if day.items %}
+  <div class="day-card" style="margin:.5rem 0 0;">
+    <div class="day-head"><span class="dow">{{ day.day_name }}</span>
+      {% if day.title %}<span class="dtitle">{{ day.title }}</span>{% endif %}</div>
+    {% for item in day.items %}
+    <div class="exercise-row">
+      <div class="xname">{{ item.exercise.name }}</div>
+      <span class="setchip">{{ item.sets }} × {{ item.reps }}</span>
+      {% if item.target_weight %}<span class="setchip">{{ item.target_weight }}</span>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+  {% if clients %}
+  <details class="reveal">
+    <summary>Apply to a client</summary>
+    <div class="reveal-body">
+      {% for cl in clients %}
+      <form method="post" action="/coach/clients/{{ cl.id }}/programs/from-template" class="inline" style="display:flex; gap:.5rem; align-items:flex-end; margin-bottom:.5rem;">
+        <input type="hidden" name="template_id" value="{{ t.id }}">
+        <label style="flex:1; margin:0;">{{ cl.user.full_name }} — week start
+          <input type="date" name="week_start" required></label>
+        <button class="btn primary sm" style="margin-bottom:.1rem;">Apply</button>
+      </form>
+      {% endfor %}
+    </div>
+  </details>
+  {% endif %}
+</div>
+{% else %}
+<div class="card">
+  <div class="empty"><span class="glyph">📋</span>No templates yet.<br>
+    Open any client's program and use “Save as template”.</div>
+</div>
+{% endfor %}
+{% endblock %}

@@ -25,6 +25,10 @@
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>
   {%- elif name == 'book' -%}
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2Zm0 0a2 2 0 0 0 2 2h13"/></svg>
+  {%- elif name == 'mail' -%}
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+  {%- elif name == 'chart' -%}
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v16h16"/><path d="m7 14 4-5 3 3 5-7"/></svg>
   {%- elif name == 'logout' -%}
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h4v16h-4M10 17l5-5-5-5M15 12H3"/></svg>
   {%- endif -%}
@@ -46,11 +50,13 @@
       {{ navlink('/admin', 'Dashboard', 'home', exact=True) }}
       {{ navlink('/admin/users', 'Coaches & clients', 'users') }}
       {{ navlink('/admin/capacity', 'Capacity', 'sliders') }}
+      {{ navlink('/admin/emails', 'Emails', 'mail') }}
       {{ navlink('/admin/audit', 'Audit log', 'list') }}
     {% elif user.role.value == 'COACH' %}
       {{ navlink('/coach', 'Dashboard', 'home', exact=True) }}
       {{ navlink('/coach/calendar', 'Schedule', 'calendar') }}
       {{ navlink('/coach/clients', 'My clients', 'users') }}
+      {{ navlink('/coach/templates', 'Templates', 'book') }}
       {{ navlink('/coach/exercises', 'Exercise library', 'dumbbell') }}
     {% elif user.role.value == 'CLIENT' %}
       {{ navlink('/client', 'Today', 'home', exact=True) }}
@@ -93,11 +99,13 @@
     {{ tablink('/admin', 'Home', 'home', exact=True) }}
     {{ tablink('/admin/users', 'Users', 'users') }}
     {{ tablink('/admin/capacity', 'Capacity', 'sliders') }}
+    {{ tablink('/admin/emails', 'Emails', 'mail') }}
     {{ tablink('/admin/audit', 'Audit', 'list') }}
   {% elif user.role.value == 'COACH' %}
     {{ tablink('/coach', 'Home', 'home', exact=True) }}
     {{ tablink('/coach/calendar', 'Schedule', 'calendar') }}
     {{ tablink('/coach/clients', 'Clients', 'users') }}
+    {{ tablink('/coach/templates', 'Templates', 'book') }}
     {{ tablink('/coach/exercises', 'Library', 'dumbbell') }}
   {% elif user.role.value == 'CLIENT' %}
     {{ tablink('/client', 'Today', 'home', exact=True) }}

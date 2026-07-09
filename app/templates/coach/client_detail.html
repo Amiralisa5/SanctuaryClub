@@ -98,6 +98,20 @@
     </div>
     <button class="btn primary">Create program week</button>
   </form>
+  {% if templates %}
+  <hr class="divider">
+  <form method="post" action="/coach/clients/{{ client.id }}/programs/from-template">
+    <div class="row">
+      <label style="flex:2;">From template
+        <select name="template_id">
+          {% for t in templates %}<option value="{{ t.id }}">{{ t.title }} ({{ t.exercise_count }} exercises)</option>{% endfor %}
+        </select>
+      </label>
+      <label style="flex:1;">Week start <input type="date" name="week_start" required></label>
+    </div>
+    <button class="btn">📋 Apply template</button>
+  </form>
+  {% endif %}
 </div>
 
 <div class="card">
