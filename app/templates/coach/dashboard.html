@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Coach — SanctuaryClub{% endblock %}
+{% block content %}
+<h1>Coach dashboard</h1>
+<div class="stats">
+  <div class="stat"><div class="num">{{ client_count }}</div><div class="lbl">Clients</div></div>
+  <div class="stat"><div class="num">{{ todays_bookings|length }}</div><div class="lbl">Sessions today</div></div>
+</div>
+<div class="card">
+  <h2>Today's sessions — {{ today }}</h2>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Section</th><th>Client</th><th>Status</th><th>Attendance</th></tr>
+    {% for b in todays_bookings %}
+    <tr>
+      <td>{{ b.section.label }}</td>
+      <td><a href="/coach/clients/{{ b.client_id }}">{{ b.client.user.full_name }}</a></td>
+      <td><span class="badge badge-{{ b.status.value }}">{{ b.status.value }}</span></td>
+      <td>
+        {% if b.attendance %}
+          <span class="badge badge-{{ b.attendance.status.value }}">{{ b.attendance.status.value }}</span>
+          {% if b.attendance.auto %}<span class="muted">(auto)</span>{% endif %}
+        {% else %}
+          <span class="muted">—</span>
+        {% endif %}
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" class="muted">No sessions today.</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+</div>
+{% endblock %}

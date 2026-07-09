@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}SanctuaryClub{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<nav class="topnav">
+  <a class="brand" href="/">🏋️ SanctuaryClub</a>
+  {% if user %}
+  <div class="navlinks">
+    {% if user.role.value == 'ADMIN' %}
+      <a href="/admin">Dashboard</a>
+      <a href="/admin/users">Users</a>
+      <a href="/admin/capacity">Capacity</a>
+      <a href="/admin/audit">Audit</a>
+    {% elif user.role.value == 'COACH' %}
+      <a href="/coach">Dashboard</a>
+      <a href="/coach/clients">Clients</a>
+      <a href="/coach/exercises">Exercises</a>
+    {% elif user.role.value == 'CLIENT' %}
+      <a href="/client">Dashboard</a>
+      <a href="/client/bookings">Bookings</a>
+      <a href="/client/program">Program</a>
+    {% endif %}
+    <form method="post" action="/logout" class="inline">
+      <button type="submit" class="link-btn">Logout ({{ user.full_name }})</button>
+    </form>
+  </div>
+  {% endif %}
+</nav>
+<main class="container">
+  {% for f in flashes %}
+    <div class="flash flash-{{ f.category }}">{{ f.message }}</div>
+  {% endfor %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

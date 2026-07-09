@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Users — SanctuaryClub{% endblock %}
+{% block content %}
+<h1>Coaches &amp; clients</h1>
+
+<div class="grid2">
+  <div class="card">
+    <h2>New coach</h2>
+    <form method="post" action="/admin/coaches">
+      <label>Full name <input name="full_name" required></label>
+      <label>Email <input type="email" name="email" required></label>
+      <label>Password <input type="password" name="password" required minlength="6"></label>
+      <button class="btn primary">Create coach</button>
+    </form>
+  </div>
+  <div class="card">
+    <h2>New client</h2>
+    <form method="post" action="/admin/clients">
+      <label>Full name <input name="full_name" required></label>
+      <label>Email <input type="email" name="email" required></label>
+      <label>Password <input type="password" name="password" required minlength="6"></label>
+      <label>Coach
+        <select name="coach_id" required>
+          {% for c in coaches %}<option value="{{ c.id }}">{{ c.user.full_name }}</option>{% endfor %}
+        </select>
+      </label>
+      <button class="btn primary">Create client</button>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Coaches</h2>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Name</th><th>Email</th><th>Clients</th><th>Status</th><th></th></tr>
+    {% for c in coaches %}
+    <tr>
+      <td>{{ c.user.full_name }}</td>
+      <td>{{ c.user.email }}</td>
+      <td>{{ c.clients|length }}</td>
+      <td>{{ 'Active' if c.user.is_active else 'Inactive' }}</td>
+      <td>
+        <form method="post" action="/admin/users/{{ c.user.id }}/toggle" class="inline">
+          <button class="btn danger">{{ 'Deactivate' if c.user.is_active else 'Activate' }}</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Clients</h2>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Name</th><th>Email</th><th>Coach</th><th>Status</th><th>Reassign</th><th></th></tr>
+    {% for cl in clients %}
+    <tr>
+      <td>{{ cl.user.full_name }}</td>
+      <td>{{ cl.user.email }}</td>
+      <td>{{ cl.coach.user.full_name }}</td>
+      <td>{{ 'Active' if cl.user.is_active else 'Inactive' }}</td>
+      <td>
+        <form method="post" action="/admin/clients/{{ cl.id }}/reassign" class="inline">
+          <select name="coach_id">
+            {% for c in coaches %}<option value="{{ c.id }}" {{ 'selected' if c.id == cl.coach_id }}>{{ c.user.full_name }}</option>{% endfor %}
+          </select>
+          <button class="btn">Move</button>
+        </form>
+      </td>
+      <td>
+        <form method="post" action="/admin/users/{{ cl.user.id }}/toggle" class="inline">
+          <button class="btn danger">{{ 'Deactivate' if cl.user.is_active else 'Activate' }}</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+</div>
+{% endblock %}

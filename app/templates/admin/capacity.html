@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Capacity — SanctuaryClub{% endblock %}
+{% block content %}
+<h1>Capacity configuration</h1>
+
+<div class="grid2">
+  <div class="card">
+    <h2>Defaults</h2>
+    <form method="post" action="/admin/capacity/defaults">
+      <label>Gym-wide capacity per section
+        <input type="number" name="gym_default" min="0" value="{{ defaults.gym }}" required></label>
+      <label>Per-coach capacity per section
+        <input type="number" name="coach_default" min="0" value="{{ defaults.coach }}" required></label>
+      <button class="btn primary">Save defaults</button>
+    </form>
+  </div>
+  <div class="card">
+    <h2>Override for a date/section</h2>
+    <form method="post" action="/admin/capacity/overrides">
+      <label>Date <input type="date" name="override_date" required></label>
+      <label>Section
+        <select name="section_id">
+          {% for s in sections %}<option value="{{ s.id }}">{{ s.label }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Coach (leave empty for gym-wide)
+        <select name="coach_id">
+          <option value="">— gym-wide —</option>
+          {% for c in coaches %}<option value="{{ c.id }}">{{ c.user.full_name }}</option>{% endfor %}
+        </select>
+      </label>
+      <label>Capacity <input type="number" name="capacity" min="0" required></label>
+      <button class="btn primary">Save override</button>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Active overrides</h2>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Date</th><th>Section</th><th>Scope</th><th>Capacity</th><th></th></tr>
+    {% for o in overrides %}
+    <tr>
+      <td>{{ o.date }}</td>
+      <td>{{ o.section.label }}</td>
+      <td>{{ o.coach.user.full_name if o.coach else 'Gym-wide' }}</td>
+      <td>{{ o.capacity }}</td>
+      <td>
+        <form method="post" action="/admin/capacity/overrides/{{ o.id }}/delete" class="inline">
+          <button class="btn danger">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" class="muted">No overrides configured.</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+</div>
+{% endblock %}

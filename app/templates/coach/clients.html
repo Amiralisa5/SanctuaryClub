@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}My clients — SanctuaryClub{% endblock %}
+{% block content %}
+<h1>My clients</h1>
+<div class="card">
+  <div class="table-wrap">
+  <table>
+    <tr><th>Name</th><th>Email</th><th></th></tr>
+    {% for cl in clients %}
+    <tr>
+      <td>{{ cl.user.full_name }}</td>
+      <td>{{ cl.user.email }}</td>
+      <td><a class="btn" href="/coach/clients/{{ cl.id }}">Open</a></td>
+    </tr>
+    {% else %}
+    <tr><td colspan="3" class="muted">No clients assigned yet. Ask an admin to assign clients to you.</td></tr>
+    {% endfor %}
+  </table>
+  </div>
+</div>
+{% endblock %}
