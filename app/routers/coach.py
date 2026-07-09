@@ -1,9 +1,12 @@
+import uuid
 from datetime import date
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import RedirectResponse
 from sqlalchemy import select
 
+from .. import config
 from ..audit import log_action
 from ..models import (
     AttendanceStatus,
@@ -229,6 +232,27 @@ def mark_attendance(request: Request, booking_id: int, status: str = Form(...),
 
 # --- Exercise library ---
 
+def _save_media(upload: UploadFile) -> str:
+    """Validate and store an uploaded demo file; returns the stored filename."""
+    ext = Path(upload.filename).suffix.lower()
+    if ext not in config.ALLOWED_MEDIA_EXTENSIONS:
+        allowed = ", ".join(sorted(config.ALLOWED_MEDIA_EXTENSIONS))
+        raise ValueError(f"File type '{ext or 'unknown'}' is not allowed. Use one of: {allowed}.")
+    limit = config.MAX_UPLOAD_MB * 1024 * 1024
+    filename = f"{uuid.uuid4().hex}{ext}"
+    target = Path(config.UPLOAD_DIR) / filename
+    target.parent.mkdir(parents=True, exist_ok=True)
+    written = 0
+    with target.open("wb") as out:
+        while chunk := upload.file.read(1024 * 1024):
+            written += len(chunk)
+            if written > limit:
+                out.close()
+                target.unlink(missing_ok=True)
+                raise ValueError(f"File is larger than the {config.MAX_UPLOAD_MB} MB limit.")
+            out.write(chunk)
+    return filename
+
 @router.get("/exercises")
 def exercises_page(request: Request, coach: Coach = Depends(current_coach), db=Depends(get_db)):
     exercises = db.scalars(select(Exercise).order_by(Exercise.name)).all()
@@ -237,16 +261,46 @@ def exercises_page(request: Request, coach: Coach = Depends(current_coach), db=D
 
 @router.post("/exercises")
 def create_exercise(request: Request, name: str = Form(...), description: str = Form(""),
-                    tags: str = Form(""), coach: Coach = Depends(current_coach),
-                    db=Depends(get_db)):
+                    tags: str = Form(""), video_url: str = Form(""),
+                    media: UploadFile | None = File(None),
+                    coach: Coach = Depends(current_coach), db=Depends(get_db)):
     name = name.strip()
     if db.scalar(select(Exercise).where(Exercise.name == name)):
         flash(request, f"Exercise '{name}' already exists.", "error")
-    else:
-        db.add(Exercise(name=name, description=description.strip(), tags=tags.strip()))
-        log_action(db, coach.user, "exercise.create", detail=name)
-        db.commit()
-        flash(request, f"Exercise '{name}' added.", "success")
+        return RedirectResponse("/coach/exercises", status_code=303)
+    exercise = Exercise(name=name, description=description.strip(), tags=tags.strip(),
+                        video_url=video_url.strip())
+    try:
+        if media and media.filename:
+            exercise.media_path = _save_media(media)
+    except ValueError as exc:
+        flash(request, str(exc), "error")
+        return RedirectResponse("/coach/exercises", status_code=303)
+    db.add(exercise)
+    log_action(db, coach.user, "exercise.create", detail=name)
+    db.commit()
+    flash(request, f"Exercise '{name}' added.", "success")
+    return RedirectResponse("/coach/exercises", status_code=303)
+
+
+@router.post("/exercises/{exercise_id}/media")
+def update_exercise_media(request: Request, exercise_id: int, video_url: str = Form(""),
+                          media: UploadFile | None = File(None),
+                          coach: Coach = Depends(current_coach), db=Depends(get_db)):
+    exercise = db.get(Exercise, exercise_id)
+    if exercise is None:
+        raise HTTPException(404)
+    exercise.video_url = video_url.strip()
+    try:
+        if media and media.filename:
+            exercise.media_path = _save_media(media)
+    except ValueError as exc:
+        flash(request, str(exc), "error")
+        return RedirectResponse("/coach/exercises", status_code=303)
+    log_action(db, coach.user, "exercise.media", "exercise", exercise.id,
+               f"url={exercise.video_url or '-'} file={exercise.media_path or '-'}")
+    db.commit()
+    flash(request, f"Demo media updated for '{exercise.name}'.", "success")
     return RedirectResponse("/coach/exercises", status_code=303)
 
 

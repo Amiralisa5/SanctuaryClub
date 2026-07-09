@@ -22,6 +22,7 @@
   {% for item in day.items %}
   <div class="exercise-row">
     <div class="xname">{{ item.exercise.name }}
+      {% if item.exercise.demo_url %}<a href="{{ item.exercise.demo_url }}" target="_blank" rel="noopener" class="badge badge-BOOKED" style="text-decoration:none;">▶ demo</a>{% endif %}
       {% if item.notes %}<div class="xnotes">{{ item.notes }}</div>{% endif %}
     </div>
     <span class="setchip">{{ item.sets }} × {{ item.reps }}</span>

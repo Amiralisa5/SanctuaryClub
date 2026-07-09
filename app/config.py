@@ -41,6 +41,11 @@ SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
 SMTP_STARTTLS = os.environ.get("SMTP_STARTTLS", "1") == "1"
 EMAIL_FROM = os.environ.get("EMAIL_FROM", "no-reply@sanctuary.club")
 
+# Media uploads (exercise demo videos/images), served from /media
+UPLOAD_DIR = os.environ.get("UPLOAD_DIR", "./media")
+MAX_UPLOAD_MB = int(os.environ.get("MAX_UPLOAD_MB", "50"))
+ALLOWED_MEDIA_EXTENSIONS = {".mp4", ".mov", ".webm", ".m4v", ".gif", ".jpg", ".jpeg", ".png", ".webp"}
+
 # When "1" (default), tables are created via SQLAlchemy create_all on startup —
 # convenient for local dev and tests. Set to "0" in production and manage the
 # schema with Alembic migrations instead (alembic upgrade head).

@@ -61,6 +61,9 @@ app = FastAPI(
 app.add_middleware(SessionMiddleware, secret_key=config.SECRET_KEY, same_site="lax")
 app.mount("/static", StaticFiles(directory=str(Path(__file__).parent / "static")), name="static")
 
+Path(config.UPLOAD_DIR).mkdir(parents=True, exist_ok=True)
+app.mount("/media", StaticFiles(directory=config.UPLOAD_DIR), name="media")
+
 
 @app.exception_handler(LoginRequired)
 async def login_required_handler(request: Request, exc: LoginRequired):

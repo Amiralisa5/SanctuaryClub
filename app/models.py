@@ -195,6 +195,15 @@ class Exercise(Base):
     name: Mapped[str] = mapped_column(String(200), unique=True)
     description: Mapped[str] = mapped_column(Text, default="")
     tags: Mapped[str] = mapped_column(String(255), default="")
+    # Demo media: an external link and/or an uploaded file served from /media
+    video_url: Mapped[str] = mapped_column(String(500), default="", server_default="")
+    media_path: Mapped[str] = mapped_column(String(255), default="", server_default="")
+
+    @property
+    def demo_url(self) -> str:
+        if self.media_path:
+            return f"/media/{self.media_path}"
+        return self.video_url
 
 
 class WorkoutItem(Base):
