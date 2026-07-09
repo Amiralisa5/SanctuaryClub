@@ -31,3 +31,8 @@ ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
 ADMIN_NAME = os.environ.get("ADMIN_NAME", "Sanctuary Admin")
 
 DISABLE_SCHEDULER = os.environ.get("DISABLE_SCHEDULER", "") == "1"
+
+# When "1" (default), tables are created via SQLAlchemy create_all on startup —
+# convenient for local dev and tests. Set to "0" in production and manage the
+# schema with Alembic migrations instead (alembic upgrade head).
+AUTO_CREATE_TABLES = os.environ.get("AUTO_CREATE_TABLES", "1") == "1"
