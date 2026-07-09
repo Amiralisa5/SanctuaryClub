@@ -7,7 +7,8 @@
     <div>
       <h1>{{ client.user.full_name }}</h1>
       <div class="sub">{{ client.user.email }} ·
-        {{ current.strftime('%B') }} plan: {% if plan %}{{ plan.quota_label }} sessions{% else %}not set{% endif %}</div>
+        {{ current.strftime('%B') }} plan: {% if plan %}{{ plan.quota_label }} sessions{% else %}not set{% endif %} ·
+        <a href="/coach/clients/{{ client.id }}/progress">📈 Progress</a></div>
     </div>
   </div>
 </div>

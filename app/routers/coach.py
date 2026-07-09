@@ -136,6 +136,15 @@ def client_detail(request: Request, client_id: int, coach: Coach = Depends(curre
                   attendance_statuses=list(AttendanceStatus))
 
 
+@router.get("/clients/{client_id}/progress")
+def client_progress(request: Request, client_id: int, coach: Coach = Depends(current_coach),
+                    db=Depends(get_db)):
+    from ..services import metrics
+    client = owned_client(db, coach, client_id)
+    return render(request, "coach/client_progress.html", user=coach.user, client=client,
+                  **metrics.progress_context(db, client))
+
+
 @router.post("/clients/{client_id}/plan")
 def set_plan(request: Request, client_id: int, year: int = Form(...), month: int = Form(...),
              quota: str = Form(...), coach: Coach = Depends(current_coach), db=Depends(get_db)):

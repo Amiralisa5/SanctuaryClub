@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}{{ client.user.full_name }} · Progress — SanctuaryClub{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div class="eyebrow"><a href="/coach/clients/{{ client.id }}">← {{ client.user.full_name }}</a></div>
+  <h1>Progress</h1>
+  <div class="sub">Check-in trends and attendance consistency.</div>
+</div>
+{% include "_progress_body.html" %}
+{% endblock %}

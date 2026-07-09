@@ -1,0 +1,75 @@
+{# Shared progress dashboard body. Expects: tiles, weight_chart, rpe_chart, months_chart, history #}
+<div class="stats">
+  <div class="stat"><div class="lbl">Body weight</div>
+    <div class="num">{% if tiles.weight is not none %}{{ tiles.weight }} <small>kg</small>{% else %}—{% endif %}</div></div>
+  <div class="stat {{ 'tone-good' if tiles.weight_delta is not none and tiles.weight_delta < 0 }}"><div class="lbl">Change since first log</div>
+    <div class="num">{% if tiles.weight_delta is not none %}{{ '%+.1f'|format(tiles.weight_delta) }} <small>kg</small>{% else %}—{% endif %}</div></div>
+  <div class="stat"><div class="lbl">Average RPE</div>
+    <div class="num">{{ tiles.avg_rpe if tiles.avg_rpe is not none else '—' }}</div></div>
+  <div class="stat"><div class="lbl">Average completion</div>
+    <div class="num">{% if tiles.avg_completion is not none %}{{ tiles.avg_completion }}<small>%</small>{% else %}—{% endif %}</div></div>
+  <div class="stat tone-good"><div class="lbl">Attendance this month</div>
+    <div class="num">{% if tiles.rate is not none %}{{ tiles.rate }}<small>%</small>{% else %}—{% endif %}</div></div>
+</div>
+
+{% macro linechart(chart, unit) %}
+<svg class="chart" viewBox="0 0 {{ chart.width }} {{ chart.height }}" role="img">
+  <line class="chart-grid" x1="{{ chart.pad_l }}" y1="{{ chart.baseline_y }}" x2="{{ chart.width - 18 }}" y2="{{ chart.baseline_y }}"/>
+  <line class="chart-grid" x1="{{ chart.pad_l }}" y1="{{ chart.top_y }}" x2="{{ chart.width - 18 }}" y2="{{ chart.top_y }}"/>
+  <text class="chart-label" x="{{ chart.pad_l - 6 }}" y="{{ chart.top_y + 4 }}" text-anchor="end">{{ chart.y_max }}</text>
+  <text class="chart-label" x="{{ chart.pad_l - 6 }}" y="{{ chart.baseline_y + 4 }}" text-anchor="end">{{ chart.y_min }}</text>
+  <polygon class="chart-area" points="{{ chart.area }}"/>
+  <polyline class="chart-line" points="{{ chart.points }}"/>
+  {% for p in chart.dots %}<circle class="chart-dot" cx="{{ p.x }}" cy="{{ p.y }}" r="4.5">
+    <title>{{ p.date }}: {{ p.value }}{{ unit }}</title></circle>{% endfor %}
+  <text class="chart-value" x="{{ chart.last.x }}" y="{{ chart.last.y - 10 }}" text-anchor="middle">{{ chart.last.value }}{{ unit }}</text>
+  <text class="chart-label" x="{{ chart.pad_l }}" y="{{ chart.height - 6 }}">{{ chart.x_first.strftime('%b %-d') }}</text>
+  <text class="chart-label" x="{{ chart.width - 18 }}" y="{{ chart.height - 6 }}" text-anchor="end">{{ chart.x_last.strftime('%b %-d') }}</text>
+</svg>
+{% endmacro %}
+
+<div class="grid2">
+  <div class="card">
+    <h2>Body weight trend</h2>
+    {% if weight_chart %}{{ linechart(weight_chart, ' kg') }}
+    {% else %}<div class="empty"><span class="glyph">⚖️</span>Log your weight at check-in — the trend appears after two entries.</div>{% endif %}
+  </div>
+  <div class="card">
+    <h2>Session effort (RPE)</h2>
+    {% if rpe_chart %}{{ linechart(rpe_chart, '') }}
+    {% else %}<div class="empty"><span class="glyph">🔥</span>Rate your sessions at check-in — the trend appears after two entries.</div>{% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <h2>Attendance rate by month</h2>
+  <svg class="chart" viewBox="0 0 {{ months_chart.width }} {{ months_chart.height }}" role="img">
+    <line class="chart-grid" x1="10" y1="{{ months_chart.baseline_y }}" x2="{{ months_chart.width - 10 }}" y2="{{ months_chart.baseline_y }}"/>
+    {% for b in months_chart.bars %}
+      {% if b.path %}<path class="chart-bar" d="{{ b.path }}"><title>{{ b.label }}: {{ b.rate }}% ({{ b.present }} of {{ b.present + b.absent + b.excused }} marked)</title></path>
+      <text class="chart-value" x="{{ b.cx }}" y="{{ b.y - 6 }}" text-anchor="middle">{{ b.rate }}%</text>
+      {% endif %}
+      <text class="chart-label" x="{{ b.cx }}" y="{{ months_chart.baseline_y + 16 }}" text-anchor="middle">{{ b.label }}</text>
+    {% endfor %}
+  </svg>
+</div>
+
+<div class="card">
+  <h2>Check-in log</h2>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Date</th><th>Weight</th><th>RPE</th><th>Completed</th><th>Notes</th></tr>
+    {% for a in history|reverse %}
+    <tr>
+      <td>{{ a.booking.date }}</td>
+      <td>{{ a.weight_kg ~ ' kg' if a.weight_kg is not none else '—' }}</td>
+      <td>{{ a.rpe if a.rpe is not none else '—' }}</td>
+      <td>{{ a.completion_pct ~ '%' if a.completion_pct is not none else '—' }}</td>
+      <td class="muted">{{ a.notes }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5"><div class="empty">No check-ins yet.</div></td></tr>
+    {% endfor %}
+  </table>
+  </div>
+</div>

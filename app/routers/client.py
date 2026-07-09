@@ -216,6 +216,13 @@ def check_in(request: Request, booking_id: int, weight_kg: str = Form(""),
         return RedirectResponse(f"/client/checkin/{booking.id}", status_code=303)
 
 
+@router.get("/progress")
+def progress_page(request: Request, client: Client = Depends(current_client), db=Depends(get_db)):
+    from ..services import metrics
+    return render(request, "client/progress.html", user=client.user,
+                  **metrics.progress_context(db, client))
+
+
 @router.get("/program")
 def program_page(request: Request, client: Client = Depends(current_client), db=Depends(get_db)):
     weeks = db.scalars(
