@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Notifications — SanctuaryClub{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Notifications</h1>
+  <div class="sub">Everything that needs your attention, newest first.</div>
+</div>
+<div class="card">
+  {% for n, was_unread in seen %}
+  <div class="list-row {{ 'notif-unread' if was_unread }}">
+    <span class="avatar">{{ '🔔' if was_unread else '✓' }}</span>
+    <div class="grow">
+      <div class="title">{{ n.title }}</div>
+      {% if n.body %}<div class="sub">{{ n.body }}</div>{% endif %}
+      <div class="sub muted">{{ n.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+    </div>
+    {% if n.link %}<a class="btn sm" href="{{ n.link }}">Open</a>{% endif %}
+  </div>
+  {% else %}
+  <div class="empty"><span class="glyph">🔔</span>Nothing yet — booking changes, signups, and program updates land here.</div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -126,6 +126,8 @@ def reassign_client(request: Request, client_id: int, coach_id: int = Form(...),
     client.coach_id = coach.id
     log_action(db, user, "admin.reassign_client", "client", client.id,
                f"coach {old} -> {coach.id}")
+    from ..services import notifications as notif_svc
+    notif_svc.notify_coach_assigned(db, client, coach)
     db.commit()
     flash(request, f"{client.user.full_name} reassigned to {coach.user.full_name}.", "success")
     return RedirectResponse("/admin/users", status_code=303)

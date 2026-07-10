@@ -54,6 +54,8 @@ def resolve_oauth_user(db, provider: str, identity: dict) -> tuple[User, bool]:
     _sync_health_connection(db, user, provider, identity)
     log_action(db, user, "auth.oauth_signup" if created else "auth.oauth_link",
                "user", user.id, f"provider={provider}")
+    if created:
+        notifications.notify_new_signup(db, user)
     db.commit()
     return user, created
 
