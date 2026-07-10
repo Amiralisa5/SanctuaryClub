@@ -50,6 +50,9 @@ GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
 STRAVA_CLIENT_ID = os.environ.get("STRAVA_CLIENT_ID", "")
 STRAVA_CLIENT_SECRET = os.environ.get("STRAVA_CLIENT_SECRET", "")
 
+# Hour (gym-local) of the nightly automatic Strava sync for all connected clients
+STRAVA_SYNC_HOUR = int(os.environ.get("STRAVA_SYNC_HOUR", "3"))
+
 # Password reset links expire after this many minutes; tokens are single-use
 RESET_TOKEN_TTL_MINUTES = int(os.environ.get("RESET_TOKEN_TTL_MINUTES", "60"))
 

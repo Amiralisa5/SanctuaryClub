@@ -159,6 +159,25 @@ _HANDLERS = {
 }
 
 
+def sync_all_strava(db) -> dict:
+    """Nightly job: sync every connected Strava account; failures don't stop the run."""
+    connections = db.scalars(select(HealthConnection).where(
+        HealthConnection.provider == "strava",
+        HealthConnection.status == "connected",
+        HealthConnection.access_token != "",
+    )).all()
+    synced, imported, failed = 0, 0, 0
+    for connection in connections:
+        try:
+            result = handle(db, SyncStrava(client_id=connection.client_id))
+            imported += result["imported"]
+            synced += 1
+        except HealthError:
+            failed += 1
+            db.rollback()
+    return {"synced": synced, "imported": imported, "failed": failed}
+
+
 def _actor(db, actor_id: int | None) -> User | None:
     return db.get(User, actor_id) if actor_id else None
 
