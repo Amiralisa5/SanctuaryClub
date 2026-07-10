@@ -49,12 +49,15 @@
     {% if user.role.value == 'ADMIN' %}
       {{ navlink('/admin', 'Dashboard', 'home', exact=True) }}
       {{ navlink('/admin/users', 'Coaches & clients', 'users') }}
+      {{ navlink('/admin/classes', 'Classes', 'calendar') }}
       {{ navlink('/admin/capacity', 'Capacity', 'sliders') }}
       {{ navlink('/admin/emails', 'Emails', 'mail') }}
       {{ navlink('/admin/audit', 'Audit log', 'list') }}
     {% elif user.role.value == 'COACH' %}
       {{ navlink('/coach', 'Dashboard', 'home', exact=True) }}
       {{ navlink('/coach/calendar', 'Schedule', 'calendar') }}
+      {{ navlink('/coach/availability', 'Availability', 'sliders') }}
+      {{ navlink('/coach/classes', 'Classes', 'list') }}
       {{ navlink('/coach/clients', 'My clients', 'users') }}
       {{ navlink('/coach/templates', 'Templates', 'book') }}
       {{ navlink('/coach/exercises', 'Exercise library', 'dumbbell') }}
@@ -105,12 +108,15 @@
   {% if user.role.value == 'ADMIN' %}
     {{ tablink('/admin', 'Home', 'home', exact=True) }}
     {{ tablink('/admin/users', 'Users', 'users') }}
+    {{ tablink('/admin/classes', 'Classes', 'calendar') }}
     {{ tablink('/admin/capacity', 'Capacity', 'sliders') }}
     {{ tablink('/admin/emails', 'Emails', 'mail') }}
     {{ tablink('/admin/audit', 'Audit', 'list') }}
   {% elif user.role.value == 'COACH' %}
     {{ tablink('/coach', 'Home', 'home', exact=True) }}
     {{ tablink('/coach/calendar', 'Schedule', 'calendar') }}
+    {{ tablink('/coach/availability', 'Slots', 'sliders') }}
+    {{ tablink('/coach/classes', 'Classes', 'list') }}
     {{ tablink('/coach/clients', 'Clients', 'users') }}
     {{ tablink('/coach/templates', 'Templates', 'book') }}
     {{ tablink('/coach/exercises', 'Library', 'dumbbell') }}

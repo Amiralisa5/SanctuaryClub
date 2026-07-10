@@ -223,6 +223,26 @@ def progress_page(request: Request, client: Client = Depends(current_client), db
                   **metrics.progress_context(db, client))
 
 
+@router.get("/coach-calendar")
+def coach_calendar(request: Request, year: int | None = None, month: int | None = None,
+                   client: Client = Depends(current_client), db=Depends(get_db)):
+    from ..services import availability as avail_svc
+    from ..utils import WEEKDAY_NAMES, month_grid, shift_month
+
+    if client.coach is None:
+        flash(request, "You'll see your coach's calendar once an admin assigns one.", "info")
+        return RedirectResponse("/client", status_code=303)
+    current = now()
+    year = year or current.year
+    month = month if month and 1 <= month <= 12 else current.month
+    return render(request, "client/coach_calendar.html", user=client.user, client=client,
+                  grid=month_grid(year, month),
+                  availability=avail_svc.month_availability(db, client.coach, year, month),
+                  year=year, month=month, today=current.date(),
+                  weekday_names=WEEKDAY_NAMES,
+                  prev_ym=shift_month(year, month, -1), next_ym=shift_month(year, month, 1))
+
+
 # --- Activities (health data, private to the client + their coach) ---
 
 def _activities_context(db, client: Client) -> dict:

@@ -68,6 +68,20 @@
   </div>
 </div>
 
+{% if client.coach %}
+<div class="card">
+  <h2>Coach availability</h2>
+  <div class="list-row">
+    <span class="avatar">{{ client.coach.user.full_name.split()|map('first')|join('')|upper|truncate(2, True, '') }}</span>
+    <div class="grow">
+      <div class="title">Coach {{ client.coach.user.full_name }}</div>
+      <div class="sub">See which slots are open before you book.</div>
+    </div>
+    <a class="btn sm" href="/client/coach-calendar">Open calendar</a>
+  </div>
+</div>
+{% endif %}
+
 <div class="card">
   <h2>This week's program</h2>
   {% if program %}

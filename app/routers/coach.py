@@ -106,6 +106,70 @@ def calendar_view(request: Request, year: int | None = None, month: int | None =
                   prev_ym=shift_month(year, month, -1), next_ym=shift_month(year, month, 1))
 
 
+@router.get("/classes")
+def classes_page(request: Request, year: int | None = None, month: int | None = None,
+                 day: int | None = None, coach: Coach = Depends(current_coach),
+                 db=Depends(get_db)):
+    import calendar as pycal
+
+    from ..services import classes as classes_svc
+    from ..utils import shift_month
+
+    current = now()
+    year = year or current.year
+    month = month if month and 1 <= month <= 12 else current.month
+    overview = classes_svc.month_overview(db, year, month, coach_id=coach.id)
+    day_date = roster = None
+    if day and 1 <= day <= pycal.monthrange(year, month)[1]:
+        day_date = date(year, month, day)
+        roster = classes_svc.day_roster(db, day_date, coach_id=coach.id)
+    return render(request, "coach/classes.html", user=coach.user, overview=overview,
+                  year=year, month=month, day=day, day_date=day_date, roster=roster,
+                  today=current.date(), base_url="/coach/classes", show_coach=False,
+                  month_name=pycal.month_name[month],
+                  prev_ym=shift_month(year, month, -1), next_ym=shift_month(year, month, 1))
+
+
+@router.get("/availability")
+def availability_page(request: Request, year: int | None = None, month: int | None = None,
+                      coach: Coach = Depends(current_coach), db=Depends(get_db)):
+    from ..services import availability as avail_svc
+    from ..utils import WEEKDAY_NAMES, month_grid, shift_month
+
+    current = now()
+    year = year or current.year
+    month = month if month and 1 <= month <= 12 else current.month
+    return render(request, "coach/availability.html", user=coach.user,
+                  grid=month_grid(year, month),
+                  availability=avail_svc.month_availability(db, coach, year, month),
+                  sections=_sections(db), year=year, month=month, today=current.date(),
+                  weekday_names=WEEKDAY_NAMES,
+                  prev_ym=shift_month(year, month, -1), next_ym=shift_month(year, month, 1))
+
+
+@router.post("/availability/block")
+def block_slot(request: Request, block_date: date = Form(...), section_id: int = Form(...),
+               coach: Coach = Depends(current_coach), db=Depends(get_db)):
+    from ..services import availability as avail_svc
+    section = db.get(TimeSection, section_id)
+    if section is None:
+        raise HTTPException(404)
+    avail_svc.block_slot(db, coach, block_date, section_id, coach.user)
+    flash(request, f"Blocked {block_date} {section.label} — clients can no longer book it.", "success")
+    return RedirectResponse(f"/coach/availability?year={block_date.year}&month={block_date.month}",
+                            status_code=303)
+
+
+@router.post("/availability/unblock")
+def unblock_slot(request: Request, block_date: date = Form(...), section_id: int = Form(...),
+                 coach: Coach = Depends(current_coach), db=Depends(get_db)):
+    from ..services import availability as avail_svc
+    avail_svc.unblock_slot(db, coach, block_date, section_id, coach.user)
+    flash(request, f"Unblocked {block_date} — the default capacity applies again.", "success")
+    return RedirectResponse(f"/coach/availability?year={block_date.year}&month={block_date.month}",
+                            status_code=303)
+
+
 @router.get("/clients")
 def clients_page(request: Request, coach: Coach = Depends(current_coach), db=Depends(get_db)):
     clients = db.scalars(

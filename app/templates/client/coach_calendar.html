@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% import "_calendar.html" as cal %}
+{% block title %}Coach availability — SanctuaryClub{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Coach {{ client.coach.user.full_name }}'s calendar</h1>
+  <div class="sub">Live availability — pick an open slot and <a href="/client/bookings">book it</a>.</div>
+</div>
+
+<div class="card cal-card">
+  {{ cal.month_nav('/client/coach-calendar', year, month, prev_ym, next_ym) }}
+  {{ cal.grid_open(weekday_names) }}
+  <div class="cal-grid">
+    {% for week in grid %}{% for d in week %}
+    <div class="cal-cell {{ 'dim' if d.month != month }} {{ 'today' if d == today }}">
+      <span class="cal-date">{{ d.day }}</span>
+      {% for slot in availability.get(d, []) %}
+        {% set tone = {'open': 'PRESENT', 'limited': 'EXCUSED', 'full': 'ABSENT', 'blocked': 'CANCELLED'}[slot.status] %}
+        {% if slot.status in ('open', 'limited') and d >= today %}
+        <a class="cal-ev ev-{{ tone }}" href="/client/bookings"
+           title="{{ slot.section.label }}: {{ slot.left }} spot(s) left">
+          {{ '%02d'|format(slot.section.start_hour) }}h · {{ slot.left }} left</a>
+        {% else %}
+        <span class="cal-ev ev-{{ tone }}" title="{{ slot.section.label }}: {{ slot.status }}">
+          {{ '%02d'|format(slot.section.start_hour) }}h {{ slot.status }}</span>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% endfor %}{% endfor %}
+  </div>
+  <div class="cal-legend">
+    <span class="badge badge-PRESENT">OPEN</span>
+    <span class="badge badge-EXCUSED">1–2 LEFT</span>
+    <span class="badge badge-ABSENT">FULL</span>
+    <span class="badge badge-CANCELLED">BLOCKED</span>
+  </div>
+</div>
+{% endblock %}
