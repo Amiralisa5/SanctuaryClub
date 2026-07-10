@@ -363,6 +363,21 @@ input[type="range"]::-moz-range-thumb {
 
 .field-error { display: block; color: var(--bad); font-size: .8rem; font-weight: 600; margin-top: .2rem; }
 
+.notif-count {
+  margin-left: auto;
+  background: var(--bad); color: #fff;
+  border-radius: 999px; min-width: 20px; height: 20px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: .7rem; font-weight: 800; padding: 0 .35rem;
+}
+.notif-dot {
+  position: absolute; top: 2px; right: 2px;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--bad); border: 2px solid var(--surface);
+}
+.notif-unread { background: var(--brand-soft); border-radius: var(--radius-sm); padding-left: .5rem; padding-right: .5rem; }
+.logout-btn svg { width: 20px; height: 20px; }
+
 .or-divider {
   display: flex; align-items: center; gap: .7rem;
   color: var(--muted); font-size: .78rem; font-weight: 600;

@@ -148,7 +148,7 @@ def create_booking(db, client: Client, d: date, section: TimeSection, actor: Use
     db.flush()
     log_action(db, actor, "booking.create", "booking", booking.id,
                f"client={client.id} {d} {section.label}")
-    notifications.notify_booking_created(db, booking)
+    notifications.notify_booking_created(db, booking, actor)
     db.commit()
     return booking
 
@@ -170,7 +170,7 @@ def cancel_booking(db, booking: Booking, actor: User) -> None:
     booking.status = BookingStatus.CANCELLED
     log_action(db, actor, "booking.cancel", "booking", booking.id,
                f"client={booking.client_id} {booking.date} {booking.section.label}")
-    notifications.notify_booking_cancelled(db, booking)
+    notifications.notify_booking_cancelled(db, booking, actor)
     db.commit()
 
 
@@ -186,7 +186,7 @@ def reschedule_booking(db, booking: Booking, new_date: date, new_section: TimeSe
     booking.section_id = new_section.id
     log_action(db, actor, "booking.reschedule", "booking", booking.id,
                f"client={booking.client_id} {old} -> {new_date} {new_section.label}")
-    notifications.notify_booking_rescheduled(db, booking, old)
+    notifications.notify_booking_rescheduled(db, booking, old, actor)
     db.commit()
 
 

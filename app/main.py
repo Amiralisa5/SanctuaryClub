@@ -11,7 +11,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from . import config
 from .database import SessionLocal, engine
 from .database import Base
-from .routers import account, admin, auth, client, coach
+from .routers import account, admin, auth, client, coach, notifications
 from .security import LoginRequired
 from .seed import seed_all
 from .services.attendance import auto_mark_absent
@@ -33,6 +33,17 @@ def run_auto_attendance() -> None:
         db.close()
 
 
+def run_strava_sync() -> None:
+    from .services.health.commands import sync_all_strava
+
+    db = SessionLocal()
+    try:
+        result = sync_all_strava(db)
+        logger.info("Nightly Strava sync: %s", result)
+    finally:
+        db.close()
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global scheduler
@@ -43,6 +54,7 @@ async def lifespan(app: FastAPI):
         scheduler = BackgroundScheduler(timezone=config.TIMEZONE)
         scheduler.add_job(run_auto_attendance, "interval",
                           minutes=config.AUTO_ATTENDANCE_INTERVAL_MINUTES)
+        scheduler.add_job(run_strava_sync, "cron", hour=config.STRAVA_SYNC_HOUR, minute=15)
         scheduler.start()
         logger.info("Auto-attendance scheduler started (every %d min)",
                     config.AUTO_ATTENDANCE_INTERVAL_MINUTES)
@@ -83,6 +95,7 @@ async def not_found_handler(request: Request, exc):
 
 app.include_router(auth.router)
 app.include_router(account.router)
+app.include_router(notifications.router)
 app.include_router(admin.router)
 app.include_router(coach.router)
 app.include_router(client.router)

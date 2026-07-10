@@ -405,6 +405,22 @@ class Activity(Base):
         return round(self.distance_m / 1000, 2) if self.distance_m else None
 
 
+class Notification(Base):
+    """In-app notification shown under the bell; read is flipped when viewed."""
+
+    __tablename__ = "notifications"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    title: Mapped[str] = mapped_column(String(200))
+    body: Mapped[str] = mapped_column(Text, default="")
+    link: Mapped[str] = mapped_column(String(300), default="")
+    read: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now, index=True)
+
+    user: Mapped[User] = relationship()
+
+
 class EmailLog(Base):
     """Every notification the system produced; sent=True only after real SMTP delivery."""
 
