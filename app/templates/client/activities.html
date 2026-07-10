@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Activities — SanctuaryClub{% endblock %}
+{% block content %}
+{% set sport_icons = {'Run': '🏃', 'Ride': '🚴', 'Swim': '🏊', 'WeightTraining': '🏋️',
+                      'Walk': '🚶', 'Hike': '🥾', 'Yoga': '🧘', 'Workout': '💪'} %}
+<div class="page-head">
+  {% if not can_edit %}<div class="eyebrow"><a href="/coach/clients/{{ client.id }}">← {{ client.user.full_name }}</a></div>{% endif %}
+  <h1>{{ 'My activities' if can_edit else client.user.full_name + " — activities" }}</h1>
+  <div class="sub">Private training log — visible only to {{ 'you and your coach' if can_edit else 'this client and you' }}.</div>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="lbl">This week</div><div class="num">{{ stats.week_count }} <small>sessions</small></div></div>
+  <div class="stat"><div class="lbl">Week time</div><div class="num">{{ stats.week_minutes }} <small>min</small></div></div>
+  <div class="stat"><div class="lbl">Week distance</div><div class="num">{{ stats.week_km }} <small>km</small></div></div>
+  <div class="stat"><div class="lbl">All time</div><div class="num">{{ stats.total }} <small>({{ stats.total_hours }}h)</small></div></div>
+</div>
+
+<div class="card">
+  <h2>Weekly training volume</h2>
+  {% set max_minutes = weeks|map(attribute='minutes')|max %}
+  {% for w in weeks %}
+  <div class="meter-row"><span>Week of {{ w.label }}</span><span><strong>{{ w.minutes }}</strong> min</span></div>
+  <div class="meter" style="margin-bottom:.55rem;"><span style="width: {{ (w.minutes / max_minutes * 100) if max_minutes else 0 }}%"></span></div>
+  {% endfor %}
+</div>
+
+{% if can_edit %}
+<div class="card">
+  <h2>Connected devices &amp; apps</h2>
+  {% for c in connections %}
+  <div class="list-row">
+    <span class="avatar">{{ {'strava': '🟠', 'apple_health': '🍎', 'samsung_health': '📱', 'manual': '✍️'}.get(c.provider, '⌚') }}</span>
+    <div class="grow">
+      <div class="title">{{ c.provider.replace('_', ' ')|title }}</div>
+      <div class="sub">{{ 'Last sync ' + c.last_sync_at.strftime('%Y-%m-%d %H:%M') if c.last_sync_at else 'Never synced' }}</div>
+    </div>
+    <span class="badge badge-{{ 'PRESENT' if c.status == 'connected' else 'ABSENT' }}">{{ c.status|upper }}</span>
+  </div>
+  {% else %}
+  <p class="muted">No devices connected yet. Sign in with Strava to link it automatically, or import from Apple/Samsung Health below.</p>
+  {% endfor %}
+  <div class="row" style="margin-top:.5rem;">
+    <form method="post" action="/client/activities/sync-strava" class="inline">
+      <button class="btn primary sm">🔄 Sync Strava now</button>
+    </form>
+    <a class="btn sm" href="/auth/strava/start">Connect Strava</a>
+  </div>
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <h2>Log an activity</h2>
+    <form method="post" action="/client/activities">
+      <div class="row">
+        <label style="flex:1;">Sport <input name="sport_type" required placeholder="Run, Ride, WeightTraining…" list="sport-list"></label>
+        <label style="flex:1;">Name <input name="name" placeholder="Morning run"></label>
+      </div>
+      <div class="row">
+        <label style="flex:1;">Start <input type="datetime-local" name="start_time" required></label>
+        <label style="flex:1;">Duration (min) <input type="number" name="duration_minutes" min="1" max="1440" required></label>
+      </div>
+      <div class="row">
+        <label style="flex:1;">Distance (km) <input type="number" step="0.01" name="distance_km" min="0"></label>
+        <label style="flex:1;">Calories <input type="number" name="calories" min="0"></label>
+        <label style="flex:1;">Avg HR <input type="number" name="avg_hr" min="20" max="250"></label>
+      </div>
+      <label>Notes <input name="notes"></label>
+      <button class="btn primary">Save activity</button>
+    </form>
+    <datalist id="sport-list">
+      {% for s in ['Run','Ride','Swim','WeightTraining','Walk','Hike','Yoga','Workout'] %}<option value="{{ s }}">{% endfor %}
+    </datalist>
+  </div>
+  <div class="card">
+    <h2>Import from a health app</h2>
+    <p class="muted" style="margin-top:0;">Paste a JSON list exported from an Apple Health / Samsung Health bridge:
+      <code>[{"sport_type": "Run", "start_time": "2026-07-01T18:30", "duration_seconds": 1800, "distance_m": 5000}]</code></p>
+    <form method="post" action="/client/activities/import">
+      <label>Source
+        <select name="provider">
+          <option value="apple_health">Apple Health</option>
+          <option value="samsung_health">Samsung Health</option>
+          <option value="manual">Other / manual export</option>
+        </select>
+      </label>
+      <label>JSON payload <textarea name="payload" rows="5" required placeholder='[{"sport_type": "Run", ...}]'></textarea></label>
+      <button class="btn primary">Import</button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>Activity log</h2>
+  {% for a in activities %}
+  <div class="list-row">
+    <span class="avatar">{{ sport_icons.get(a.sport_type, '💪') }}</span>
+    <div class="grow">
+      <div class="title">{{ a.name or a.sport_type }}
+        <span class="setchip">{{ a.provider.replace('_', ' ') }}</span></div>
+      <div class="sub">{{ a.start_time.strftime('%a %Y-%m-%d %H:%M') }} · {{ a.sport_type }}</div>
+    </div>
+    <div class="row" style="gap:.3rem;">
+      <span class="setchip">⏱ {{ a.duration_label }}</span>
+      {% if a.distance_km %}<span class="setchip">{{ a.distance_km }} km</span>{% endif %}
+      {% if a.avg_hr %}<span class="setchip">❤️ {{ a.avg_hr|int }}</span>{% endif %}
+      {% if a.calories %}<span class="setchip">🔥 {{ a.calories|int }}</span>{% endif %}
+    </div>
+    {% if can_edit %}
+    <form method="post" action="/client/activities/{{ a.id }}/delete" class="inline">
+      <button class="btn danger sm" title="Delete">✕</button>
+    </form>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="empty"><span class="glyph">⌚</span>No activities yet{% if can_edit %} — log one, import, or sync Strava{% endif %}.</div>
+  {% endfor %}
+</div>
+{% endblock %}

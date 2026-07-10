@@ -139,6 +139,19 @@ def client_detail(request: Request, client_id: int, coach: Coach = Depends(curre
                   attendance_statuses=list(AttendanceStatus))
 
 
+@router.get("/clients/{client_id}/activities")
+def client_activities(request: Request, client_id: int, coach: Coach = Depends(current_coach),
+                      db=Depends(get_db)):
+    from ..services.health import queries as health_q
+    client = owned_client(db, coach, client_id)
+    return render(request, "client/activities.html", user=coach.user, client=client,
+                  can_edit=False,
+                  activities=health_q.ask(db, health_q.ListActivities(client_id=client.id)),
+                  stats=health_q.ask(db, health_q.ActivityStats(client_id=client.id)),
+                  weeks=health_q.ask(db, health_q.WeeklyVolume(client_id=client.id)),
+                  connections=health_q.ask(db, health_q.Connections(client_id=client.id)))
+
+
 @router.get("/clients/{client_id}/progress")
 def client_progress(request: Request, client_id: int, coach: Coach = Depends(current_coach),
                     db=Depends(get_db)):
