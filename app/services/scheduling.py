@@ -108,6 +108,8 @@ def quota_used(db, client_id: int, year: int, month: int) -> int:
 def _check_slot(db, client: Client, d: date, section: TimeSection,
                 check_quota: bool = True) -> None:
     """Validate every booking rule for the given slot; raise BookingError on violation."""
+    if client.coach_id is None:
+        raise BookingError("You don't have a coach yet — an admin will assign one shortly.")
     if section_start(d, section) <= utils.now():
         raise BookingError("Cannot book a session in the past.")
 

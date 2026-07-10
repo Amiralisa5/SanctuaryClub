@@ -361,6 +361,20 @@ input[type="range"]::-moz-range-thumb {
 }
 .slider-scale { display: flex; justify-content: space-between; color: var(--muted); font-size: .72rem; }
 
+.field-error { display: block; color: var(--bad); font-size: .8rem; font-weight: 600; margin-top: .2rem; }
+
+.or-divider {
+  display: flex; align-items: center; gap: .7rem;
+  color: var(--muted); font-size: .78rem; font-weight: 600;
+  margin: 1rem 0 .7rem;
+}
+.or-divider::before, .or-divider::after { content: ""; flex: 1; border-top: 1px solid var(--border); }
+.oauth-btn {
+  display: flex; align-items: center; justify-content: center; gap: .5rem;
+  margin-bottom: .5rem;
+}
+.oauth-btn svg { flex-shrink: 0; }
+
 /* ---------- Flash messages ---------- */
 
 .flash {

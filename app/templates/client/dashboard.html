@@ -3,8 +3,8 @@
 {% block content %}
 <div class="page-head">
   <h1>Hi {{ user.full_name.split()[0] }} 👋</h1>
-  <div class="sub">Coach {{ client.coach.user.full_name }} ·
-    {% if plan %}{{ plan.quota_label }} sessions this month{% else %}no plan yet — ask your coach{% endif %}</div>
+  <div class="sub">{% if client.coach %}Coach {{ client.coach.user.full_name }}{% else %}No coach assigned yet — an admin will assign one shortly{% endif %} ·
+    {% if plan %}{{ plan.quota_label }} sessions this month{% else %}no plan yet{% endif %}</div>
 </div>
 
 {% if checkin_ready %}
