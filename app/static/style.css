@@ -559,6 +559,13 @@ details.reveal > .reveal-body {
   }
 }
 
+/* ---------- Class monitor ---------- */
+
+.classes-table td, .classes-table th { text-align: center; }
+.classes-table td:first-child, .classes-table th:first-child { text-align: left; }
+.class-cell { display: inline-flex; flex-direction: column; line-height: 1.2; }
+.today-row { background: var(--brand-soft); }
+
 /* ---------- Program cards ---------- */
 
 .day-card { margin-bottom: .9rem; }

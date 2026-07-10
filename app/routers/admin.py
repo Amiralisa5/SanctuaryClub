@@ -206,6 +206,29 @@ def audit_page(request: Request, user=Depends(_user), db=Depends(get_db)):
     return render(request, "admin/audit.html", user=user, logs=logs)
 
 
+@router.get("/classes")
+def classes_page(request: Request, year: int | None = None, month: int | None = None,
+                 day: int | None = None, user=Depends(_user), db=Depends(get_db)):
+    import calendar as pycal
+
+    from ..services import classes as classes_svc
+    from ..utils import shift_month
+
+    current = now()
+    year = year or current.year
+    month = month if month and 1 <= month <= 12 else current.month
+    overview = classes_svc.month_overview(db, year, month)
+    day_date = roster = None
+    if day and 1 <= day <= pycal.monthrange(year, month)[1]:
+        day_date = date(year, month, day)
+        roster = classes_svc.day_roster(db, day_date)
+    return render(request, "admin/classes.html", user=user, overview=overview,
+                  year=year, month=month, day=day, day_date=day_date, roster=roster,
+                  today=current.date(), base_url="/admin/classes", show_coach=True,
+                  month_name=pycal.month_name[month],
+                  prev_ym=shift_month(year, month, -1), next_ym=shift_month(year, month, 1))
+
+
 @router.get("/emails")
 def emails_page(request: Request, user=Depends(_user), db=Depends(get_db)):
     emails = db.scalars(select(EmailLog).order_by(EmailLog.created_at.desc()).limit(100)).all()
