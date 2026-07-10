@@ -11,7 +11,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from . import config
 from .database import SessionLocal, engine
 from .database import Base
-from .routers import admin, auth, client, coach
+from .routers import account, admin, auth, client, coach
 from .security import LoginRequired
 from .seed import seed_all
 from .services.attendance import auto_mark_absent
@@ -82,6 +82,7 @@ async def not_found_handler(request: Request, exc):
 
 
 app.include_router(auth.router)
+app.include_router(account.router)
 app.include_router(admin.router)
 app.include_router(coach.router)
 app.include_router(client.router)

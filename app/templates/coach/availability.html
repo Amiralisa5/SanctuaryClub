@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% import "_calendar.html" as cal %}
+{% block title %}Availability — SanctuaryClub{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>My availability</h1>
+  <div class="sub">This calendar is shared live with your clients — block slots you can't coach.</div>
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <h2>Block a slot</h2>
+    <form method="post" action="/coach/availability/block">
+      <label>Date <input type="date" name="block_date" required></label>
+      <div class="eyebrow">Time slot</div>
+      <div class="chip-group">
+        {% for s in sections %}
+        <label class="chip"><input type="radio" name="section_id" value="{{ s.id }}" {{ 'checked' if loop.first }}>{{ s.label }}</label>
+        {% endfor %}
+      </div>
+      <button class="btn danger">Block slot</button>
+    </form>
+  </div>
+  <div class="card">
+    <h2>Unblock a slot</h2>
+    <form method="post" action="/coach/availability/unblock">
+      <label>Date <input type="date" name="block_date" required></label>
+      <div class="eyebrow">Time slot</div>
+      <div class="chip-group">
+        {% for s in sections %}
+        <label class="chip"><input type="radio" name="section_id" value="{{ s.id }}" {{ 'checked' if loop.first }}>{{ s.label }}</label>
+        {% endfor %}
+      </div>
+      <button class="btn primary">Unblock (restore default)</button>
+    </form>
+  </div>
+</div>
+
+<div class="card cal-card">
+  {{ cal.month_nav('/coach/availability', year, month, prev_ym, next_ym) }}
+  {{ cal.grid_open(weekday_names) }}
+  <div class="cal-grid">
+    {% for week in grid %}{% for d in week %}
+    <div class="cal-cell {{ 'dim' if d.month != month }} {{ 'today' if d == today }}">
+      <span class="cal-date">{{ d.day }}</span>
+      {% for slot in availability.get(d, []) %}
+        {% set tone = {'open': 'PRESENT', 'limited': 'EXCUSED', 'full': 'ABSENT', 'blocked': 'CANCELLED'}[slot.status] %}
+        <span class="cal-ev ev-{{ tone }}"
+              title="{{ slot.section.label }}: {{ slot.status }} ({{ slot.booked }} booked, {{ slot.left }} left)">
+          {{ '%02d'|format(slot.section.start_hour) }}h {{ slot.status if slot.status != 'open' else slot.left ~ ' left' }}</span>
+      {% endfor %}
+    </div>
+    {% endfor %}{% endfor %}
+  </div>
+  <div class="cal-legend">
+    <span class="badge badge-PRESENT">OPEN</span>
+    <span class="badge badge-EXCUSED">1–2 LEFT</span>
+    <span class="badge badge-ABSENT">FULL</span>
+    <span class="badge badge-CANCELLED">BLOCKED</span>
+  </div>
+</div>
+{% endblock %}

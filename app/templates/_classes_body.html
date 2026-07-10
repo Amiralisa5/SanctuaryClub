@@ -1,0 +1,97 @@
+{# Shared class-monitor body. Expects: overview, year, month, day (opt), roster (opt),
+   base_url, show_coach (bool), prev_ym, next_ym, month_name #}
+<div class="card">
+  <div class="cal-nav">
+    <a class="btn sm" href="{{ base_url }}?year={{ prev_ym[0] }}&month={{ prev_ym[1] }}">← Prev</a>
+    <strong>{{ month_name }} {{ year }}</strong>
+    <a class="btn sm" href="{{ base_url }}?year={{ next_ym[0] }}&month={{ next_ym[1] }}">Next →</a>
+  </div>
+  <div class="stats" style="margin-bottom:.8rem;">
+    <div class="stat"><div class="lbl">Classes</div><div class="num">{{ overview.totals.classes }}</div></div>
+    <div class="stat"><div class="lbl">Bookings</div><div class="num">{{ overview.totals.booked }}</div></div>
+    <div class="stat tone-good"><div class="lbl">Present</div><div class="num">{{ overview.totals.present }}</div></div>
+    <div class="stat tone-bad"><div class="lbl">Absent</div><div class="num">{{ overview.totals.absent }}</div></div>
+    <div class="stat"><div class="lbl">Attendance rate</div>
+      <div class="num">{{ overview.totals.rate ~ '%' if overview.totals.rate is not none else '—' }}</div></div>
+  </div>
+
+  <h2>Weeks</h2>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Week</th><th>Classes</th><th>Bookings</th><th>Present</th><th>Absent</th><th>Excused</th><th>Rate</th></tr>
+    {% for w in overview.weeks %}
+    <tr>
+      <td>{{ w.start.strftime('%b %-d') }} – {{ w.end.strftime('%b %-d') }}</td>
+      <td>{{ w.classes }}</td>
+      <td>{{ w.booked }}</td>
+      <td>{{ w.present }}</td>
+      <td>{{ w.absent }}</td>
+      <td>{{ w.excused }}</td>
+      <td>{{ w.rate ~ '%' if w.rate is not none else '—' }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Daily sessions</h2>
+  <p class="muted" style="margin-top:0;">Click a day to open its class rosters.</p>
+  <div class="table-wrap">
+  <table class="classes-table">
+    <tr><th>Day</th>{% for s in overview.sections %}<th>{{ s.label[:5] }}</th>{% endfor %}<th>Total</th></tr>
+    {% for row in overview.days %}
+    <tr class="{{ 'today-row' if row.date == today }}">
+      <td style="white-space:nowrap;">
+        <a href="{{ base_url }}?year={{ year }}&month={{ month }}&day={{ row.date.day }}">{{ row.date.strftime('%a %-d') }}</a>
+      </td>
+      {% for cell in row.cells %}
+      <td>
+        {% if cell %}
+          <span class="class-cell">
+            <strong>{{ cell.booked }}</strong>
+            {% if cell.present or cell.absent %}
+            <span class="muted" style="font-size:.72rem;">✓{{ cell.present }} ✗{{ cell.absent }}</span>
+            {% endif %}
+          </span>
+        {% else %}<span class="muted">·</span>{% endif %}
+      </td>
+      {% endfor %}
+      <td><strong>{{ row.booked or '' }}</strong></td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+</div>
+
+{% if day %}
+<div class="card" id="day">
+  <h2>Classes on {{ day_date.strftime('%A, %B %-d') }}</h2>
+  {% for entry in roster %}
+  <div class="day-card">
+    <div class="day-head">
+      <span class="dow">{{ entry.section.label }}</span>
+      <span class="dtitle">{{ entry.bookings|length }} participant(s) ·
+        ✓ {{ entry.counts.present }} present · ✗ {{ entry.counts.absent }} absent ·
+        {{ entry.counts.excused }} excused · {{ entry.counts.pending }} pending</span>
+    </div>
+    {% for b in entry.bookings %}
+    <div class="list-row">
+      <span class="avatar">{{ b.client.user.full_name.split()|map('first')|join('')|upper|truncate(2, True, '') }}</span>
+      <div class="grow">
+        <div class="title">{{ b.client.user.full_name }}</div>
+        <div class="sub">{% if show_coach %}Coach {{ b.coach.user.full_name }}{% else %}{{ b.client.user.email }}{% endif %}</div>
+      </div>
+      {% if b.attendance %}
+        <span class="badge badge-{{ b.attendance.status.value }}">{{ b.attendance.status.value }}{{ ' · auto' if b.attendance.auto }}</span>
+      {% else %}
+        <span class="badge badge-BOOKED">NOT MARKED</span>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty"><span class="glyph">🧘</span>No classes on this day.</div>
+  {% endfor %}
+</div>
+{% endif %}

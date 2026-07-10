@@ -41,6 +41,18 @@ SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
 SMTP_STARTTLS = os.environ.get("SMTP_STARTTLS", "1") == "1"
 EMAIL_FROM = os.environ.get("EMAIL_FROM", "no-reply@sanctuary.club")
 
+# Public base URL used in OAuth redirect URIs and password-reset links
+PUBLIC_BASE_URL = os.environ.get("PUBLIC_BASE_URL", "http://localhost:8000")
+
+# OAuth sign-in providers (buttons appear on the login page; flows need these set)
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "")
+STRAVA_CLIENT_ID = os.environ.get("STRAVA_CLIENT_ID", "")
+STRAVA_CLIENT_SECRET = os.environ.get("STRAVA_CLIENT_SECRET", "")
+
+# Password reset links expire after this many minutes; tokens are single-use
+RESET_TOKEN_TTL_MINUTES = int(os.environ.get("RESET_TOKEN_TTL_MINUTES", "60"))
+
 # Media uploads (exercise demo videos/images), served from /media
 UPLOAD_DIR = os.environ.get("UPLOAD_DIR", "./media")
 MAX_UPLOAD_MB = int(os.environ.get("MAX_UPLOAD_MB", "50"))

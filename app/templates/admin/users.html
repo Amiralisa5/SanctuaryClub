@@ -61,7 +61,8 @@
       <div class="title">{{ cl.user.full_name }}
         {% if not cl.user.is_active %}<span class="badge badge-CANCELLED">INACTIVE</span>{% endif %}
       </div>
-      <div class="sub">{{ cl.user.email }} · Coach {{ cl.coach.user.full_name }}</div>
+      <div class="sub">{{ cl.user.email }} ·
+        {% if cl.coach %}Coach {{ cl.coach.user.full_name }}{% else %}<span class="badge badge-EXCUSED">NEEDS COACH</span>{% endif %}</div>
     </div>
     <form method="post" action="/admin/clients/{{ cl.id }}/reassign" class="inline">
       <select name="coach_id">

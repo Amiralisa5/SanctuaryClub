@@ -8,7 +8,8 @@
       <h1>{{ client.user.full_name }}</h1>
       <div class="sub">{{ client.user.email }} ·
         {{ current.strftime('%B') }} plan: {% if plan %}{{ plan.quota_label }} sessions{% else %}not set{% endif %} ·
-        <a href="/coach/clients/{{ client.id }}/progress">📈 Progress</a></div>
+        <a href="/coach/clients/{{ client.id }}/progress">📈 Progress</a> ·
+        <a href="/coach/clients/{{ client.id }}/activities">⌚ Activities</a></div>
     </div>
   </div>
 </div>

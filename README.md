@@ -62,6 +62,29 @@ Locally the app still auto-creates missing tables on startup for convenience.
 In production (and in Docker) set `AUTO_CREATE_TABLES=0` so the schema is
 managed exclusively by migrations.
 
+### OAuth sign-in (Google & Strava)
+
+Buttons appear on the login page; set the credentials to activate them:
+
+```bash
+export PUBLIC_BASE_URL=https://yourgym.com     # used in redirect URIs
+export GOOGLE_CLIENT_ID=... GOOGLE_CLIENT_SECRET=...   # Google Cloud Console OAuth client
+export STRAVA_CLIENT_ID=... STRAVA_CLIENT_SECRET=...   # strava.com/settings/api
+```
+
+Redirect URIs to register: `{PUBLIC_BASE_URL}/auth/google/callback` and
+`{PUBLIC_BASE_URL}/auth/strava/callback`. New OAuth signups become clients
+without a coach; admins assign one from **Admin → Coaches & clients** (flagged
+`NEEDS COACH`). Strava sign-in also connects the client's activity sync.
+
+### Health data (activities)
+
+Clients get a private activity database (visible only to them and their coach):
+Strava syncs via the API (`Sync Strava now` on the Activities page), Apple
+Health / Samsung Health import via JSON from any export bridge, and anything
+can be logged manually. The service is CQRS-shaped: commands in
+`app/services/health/commands.py`, queries in `app/services/health/queries.py`.
+
 ### Email notifications
 
 Notifications fire on booking created/cancelled/rescheduled, program published,
@@ -109,6 +132,17 @@ python -m pytest tests/
 - ✅ Progress metrics dashboard
 - ✅ Media uploads (demo videos/links)
 - ✅ Slot capacity enforcement (gym-wide and per-coach)
+
+### V2
+- ✅ Sign up / sign in with Google and Strava (OAuth 2.0)
+- ✅ Forgot/reset password + change/set password from the account page
+- ✅ Account profiles with per-field validation rules and inline errors
+- ✅ Health-data service (CQRS): Strava sync, Apple Health / Samsung Health
+  imports, manual logging — a private activity database per client, visible
+  to their coach for monitoring
+- ✅ Coach availability calendar shared live with clients (block/unblock slots)
+- ✅ Class monitoring: month → week → day drilldown with participant rosters
+  and present/absent/excused per client
 
 ## Technical Stack
 - **Framework**: Python — FastAPI

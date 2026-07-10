@@ -49,12 +49,15 @@
     {% if user.role.value == 'ADMIN' %}
       {{ navlink('/admin', 'Dashboard', 'home', exact=True) }}
       {{ navlink('/admin/users', 'Coaches & clients', 'users') }}
+      {{ navlink('/admin/classes', 'Classes', 'calendar') }}
       {{ navlink('/admin/capacity', 'Capacity', 'sliders') }}
       {{ navlink('/admin/emails', 'Emails', 'mail') }}
       {{ navlink('/admin/audit', 'Audit log', 'list') }}
     {% elif user.role.value == 'COACH' %}
       {{ navlink('/coach', 'Dashboard', 'home', exact=True) }}
       {{ navlink('/coach/calendar', 'Schedule', 'calendar') }}
+      {{ navlink('/coach/availability', 'Availability', 'sliders') }}
+      {{ navlink('/coach/classes', 'Classes', 'list') }}
       {{ navlink('/coach/clients', 'My clients', 'users') }}
       {{ navlink('/coach/templates', 'Templates', 'book') }}
       {{ navlink('/coach/exercises', 'Exercise library', 'dumbbell') }}
@@ -64,14 +67,17 @@
       {{ navlink('/client/calendar', 'Calendar', 'calendar') }}
       {{ navlink('/client/program', 'My program', 'book') }}
       {{ navlink('/client/progress', 'Progress', 'chart') }}
+      {{ navlink('/client/activities', 'Activities', 'dumbbell') }}
     {% endif %}
     <div class="spacer"></div>
     <div class="whoami">
+      <a href="/account" style="display:flex; align-items:center; gap:.6rem; flex:1; min-width:0; text-decoration:none; color:inherit;">
       <span class="avatar">{{ user.full_name.split()|map('first')|join('')|upper|truncate(2, True, '') }}</span>
       <div class="meta grow">
         <div class="name">{{ user.full_name }}</div>
-        <div class="role">{{ user.role.value.title() }}</div>
+        <div class="role">{{ user.role.value.title() }} · account</div>
       </div>
+      </a>
       <form method="post" action="/logout" class="inline">
         <button type="submit" class="logout-btn" title="Log out" aria-label="Log out">{{ icon('logout') }}</button>
       </form>
@@ -81,9 +87,12 @@
   <div class="main">
     <header class="appbar">
       <a class="brand" href="/"><span class="logo">🏋️</span>SanctuaryClub</a>
-      <form method="post" action="/logout" class="inline">
-        <button type="submit" class="logout-btn" title="Log out" aria-label="Log out">{{ icon('logout') }}</button>
-      </form>
+      <div class="row" style="gap:.4rem;">
+        <a href="/account" title="My account"><span class="avatar" style="width:30px;height:30px;font-size:.72rem;">{{ user.full_name.split()|map('first')|join('')|upper|truncate(2, True, '') }}</span></a>
+        <form method="post" action="/logout" class="inline">
+          <button type="submit" class="logout-btn" title="Log out" aria-label="Log out">{{ icon('logout') }}</button>
+        </form>
+      </div>
     </header>
 
     <main class="container">
@@ -99,12 +108,15 @@
   {% if user.role.value == 'ADMIN' %}
     {{ tablink('/admin', 'Home', 'home', exact=True) }}
     {{ tablink('/admin/users', 'Users', 'users') }}
+    {{ tablink('/admin/classes', 'Classes', 'calendar') }}
     {{ tablink('/admin/capacity', 'Capacity', 'sliders') }}
     {{ tablink('/admin/emails', 'Emails', 'mail') }}
     {{ tablink('/admin/audit', 'Audit', 'list') }}
   {% elif user.role.value == 'COACH' %}
     {{ tablink('/coach', 'Home', 'home', exact=True) }}
     {{ tablink('/coach/calendar', 'Schedule', 'calendar') }}
+    {{ tablink('/coach/availability', 'Slots', 'sliders') }}
+    {{ tablink('/coach/classes', 'Classes', 'list') }}
     {{ tablink('/coach/clients', 'Clients', 'users') }}
     {{ tablink('/coach/templates', 'Templates', 'book') }}
     {{ tablink('/coach/exercises', 'Library', 'dumbbell') }}
@@ -114,6 +126,7 @@
     {{ tablink('/client/calendar', 'Calendar', 'calendar') }}
     {{ tablink('/client/program', 'Program', 'book') }}
     {{ tablink('/client/progress', 'Progress', 'chart') }}
+    {{ tablink('/client/activities', 'Log', 'dumbbell') }}
   {% endif %}
 </nav>
 

@@ -45,14 +45,17 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    # Empty string for OAuth-only accounts (password login disabled until one is set)
     password_hash: Mapped[str] = mapped_column(String(255))
     full_name: Mapped[str] = mapped_column(String(120))
+    phone: Mapped[str] = mapped_column(String(30), default="", server_default="")
     role: Mapped[Role] = mapped_column(_enum(Role))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
 
     coach_profile: Mapped["Coach | None"] = relationship(back_populates="user", uselist=False)
     client_profile: Mapped["Client | None"] = relationship(back_populates="user", uselist=False)
+    oauth_accounts: Mapped[list["OAuthAccount"]] = relationship(back_populates="user")
 
 
 class Coach(Base):
@@ -71,11 +74,18 @@ class Client(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True)
-    coach_id: Mapped[int] = mapped_column(ForeignKey("coaches.id"))
+    # Nullable: OAuth self-signups start without a coach until an admin assigns one
+    coach_id: Mapped[int | None] = mapped_column(ForeignKey("coaches.id"), nullable=True)
     notes: Mapped[str] = mapped_column(Text, default="")
 
+    # Profile fields (validated in services/validation.py)
+    birth_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    gender: Mapped[str] = mapped_column(String(10), default="", server_default="")
+    height_cm: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    goal: Mapped[str] = mapped_column(Text, default="", server_default="")
+
     user: Mapped[User] = relationship(back_populates="client_profile")
-    coach: Mapped[Coach] = relationship(back_populates="clients")
+    coach: Mapped["Coach | None"] = relationship(back_populates="clients")
     bookings: Mapped[list["Booking"]] = relationship(back_populates="client")
     plans: Mapped[list["PlanMonth"]] = relationship(back_populates="client")
 
@@ -305,6 +315,94 @@ class Setting(Base):
 
     key: Mapped[str] = mapped_column(String(100), primary_key=True)
     value: Mapped[str] = mapped_column(String(255))
+
+
+class OAuthAccount(Base):
+    """External identity (Google, Strava) linked to a local user."""
+
+    __tablename__ = "oauth_accounts"
+    __table_args__ = (UniqueConstraint("provider", "provider_account_id"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    provider: Mapped[str] = mapped_column(String(20))
+    provider_account_id: Mapped[str] = mapped_column(String(100))
+    email: Mapped[str] = mapped_column(String(255), default="")
+    access_token: Mapped[str] = mapped_column(Text, default="")
+    refresh_token: Mapped[str] = mapped_column(Text, default="")
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+
+    user: Mapped[User] = relationship(back_populates="oauth_accounts")
+
+
+class PasswordResetToken(Base):
+    """Single-use reset token; only the SHA-256 hash is stored."""
+
+    __tablename__ = "password_reset_tokens"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime)
+    used: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+
+    user: Mapped[User] = relationship()
+
+
+class HealthConnection(Base):
+    """A client's link to a health-data provider (Strava pull sync; Apple/Samsung push)."""
+
+    __tablename__ = "health_connections"
+    __table_args__ = (UniqueConstraint("client_id", "provider"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    client_id: Mapped[int] = mapped_column(ForeignKey("clients.id"), index=True)
+    provider: Mapped[str] = mapped_column(String(30))
+    access_token: Mapped[str] = mapped_column(Text, default="")
+    refresh_token: Mapped[str] = mapped_column(Text, default="")
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    status: Mapped[str] = mapped_column(String(20), default="connected")
+    last_sync_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+
+    client: Mapped[Client] = relationship()
+
+
+class Activity(Base):
+    """Read model for recorded workouts/activities from any provider (private per client)."""
+
+    __tablename__ = "activities"
+    __table_args__ = (UniqueConstraint("client_id", "provider", "external_id"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    client_id: Mapped[int] = mapped_column(ForeignKey("clients.id"), index=True)
+    provider: Mapped[str] = mapped_column(String(30))  # strava | apple_health | samsung_health | manual
+    external_id: Mapped[str] = mapped_column(String(100))
+    name: Mapped[str] = mapped_column(String(200), default="")
+    sport_type: Mapped[str] = mapped_column(String(50))
+    start_time: Mapped[datetime] = mapped_column(DateTime, index=True)
+    duration_seconds: Mapped[int] = mapped_column(Integer)
+    distance_m: Mapped[float | None] = mapped_column(Float, nullable=True)
+    calories: Mapped[float | None] = mapped_column(Float, nullable=True)
+    avg_hr: Mapped[float | None] = mapped_column(Float, nullable=True)
+    max_hr: Mapped[float | None] = mapped_column(Float, nullable=True)
+    elevation_gain_m: Mapped[float | None] = mapped_column(Float, nullable=True)
+    notes: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+
+    client: Mapped[Client] = relationship()
+
+    @property
+    def duration_label(self) -> str:
+        hours, rem = divmod(self.duration_seconds, 3600)
+        minutes = rem // 60
+        return f"{hours}h {minutes:02d}m" if hours else f"{minutes}m"
+
+    @property
+    def distance_km(self) -> float | None:
+        return round(self.distance_m / 1000, 2) if self.distance_m else None
 
 
 class EmailLog(Base):

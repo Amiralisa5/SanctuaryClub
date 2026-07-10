@@ -223,6 +223,112 @@ def progress_page(request: Request, client: Client = Depends(current_client), db
                   **metrics.progress_context(db, client))
 
 
+@router.get("/coach-calendar")
+def coach_calendar(request: Request, year: int | None = None, month: int | None = None,
+                   client: Client = Depends(current_client), db=Depends(get_db)):
+    from ..services import availability as avail_svc
+    from ..utils import WEEKDAY_NAMES, month_grid, shift_month
+
+    if client.coach is None:
+        flash(request, "You'll see your coach's calendar once an admin assigns one.", "info")
+        return RedirectResponse("/client", status_code=303)
+    current = now()
+    year = year or current.year
+    month = month if month and 1 <= month <= 12 else current.month
+    return render(request, "client/coach_calendar.html", user=client.user, client=client,
+                  grid=month_grid(year, month),
+                  availability=avail_svc.month_availability(db, client.coach, year, month),
+                  year=year, month=month, today=current.date(),
+                  weekday_names=WEEKDAY_NAMES,
+                  prev_ym=shift_month(year, month, -1), next_ym=shift_month(year, month, 1))
+
+
+# --- Activities (health data, private to the client + their coach) ---
+
+def _activities_context(db, client: Client) -> dict:
+    from ..services.health import queries as health_q
+    return {
+        "activities": health_q.ask(db, health_q.ListActivities(client_id=client.id)),
+        "stats": health_q.ask(db, health_q.ActivityStats(client_id=client.id)),
+        "weeks": health_q.ask(db, health_q.WeeklyVolume(client_id=client.id)),
+        "connections": health_q.ask(db, health_q.Connections(client_id=client.id)),
+    }
+
+
+@router.get("/activities")
+def activities_page(request: Request, client: Client = Depends(current_client), db=Depends(get_db)):
+    return render(request, "client/activities.html", user=client.user, client=client,
+                  can_edit=True, **_activities_context(db, client))
+
+
+@router.post("/activities")
+def add_activity(request: Request, client: Client = Depends(current_client), db=Depends(get_db),
+                 sport_type: str = Form(...), start_time: str = Form(...),
+                 duration_minutes: str = Form(...), name: str = Form(""),
+                 distance_km: str = Form(""), calories: str = Form(""),
+                 avg_hr: str = Form(""), notes: str = Form("")):
+    from ..services.health import commands as health_c
+    try:
+        fields = {
+            "sport_type": sport_type, "start_time": start_time, "name": name,
+            "duration_seconds": int(float(duration_minutes or 0) * 60),
+            "distance_m": float(distance_km) * 1000 if distance_km else None,
+            "calories": calories or None, "avg_hr": avg_hr or None, "notes": notes,
+        }
+        health_c.handle(db, health_c.AddManualActivity(
+            client_id=client.id, fields=fields, actor_id=client.user_id))
+        flash(request, "Activity recorded.", "success")
+    except (health_c.HealthError, ValueError) as exc:
+        flash(request, str(exc), "error")
+    return RedirectResponse("/client/activities", status_code=303)
+
+
+@router.post("/activities/import")
+def import_activities(request: Request, client: Client = Depends(current_client),
+                      db=Depends(get_db), provider: str = Form(...), payload: str = Form(...)):
+    import json
+
+    from ..services.health import commands as health_c
+    try:
+        items = json.loads(payload)
+        result = health_c.handle(db, health_c.ImportActivities(
+            client_id=client.id, provider=provider, items=items, actor_id=client.user_id))
+        flash(request, f"Imported {result['imported']} activities from {provider.replace('_', ' ')}.",
+              "success")
+        for line in result["skipped"][:6]:
+            flash(request, f"Skipped {line}", "error")
+    except json.JSONDecodeError:
+        flash(request, "Payload must be valid JSON (a list of activities).", "error")
+    except health_c.HealthError as exc:
+        flash(request, str(exc), "error")
+    return RedirectResponse("/client/activities", status_code=303)
+
+
+@router.post("/activities/sync-strava")
+def sync_strava(request: Request, client: Client = Depends(current_client), db=Depends(get_db)):
+    from ..services.health import commands as health_c
+    try:
+        result = health_c.handle(db, health_c.SyncStrava(client_id=client.id,
+                                                         actor_id=client.user_id))
+        flash(request, f"Strava sync complete — {result['imported']} new activities.", "success")
+    except health_c.HealthError as exc:
+        flash(request, str(exc), "error")
+    return RedirectResponse("/client/activities", status_code=303)
+
+
+@router.post("/activities/{activity_id}/delete")
+def delete_activity(request: Request, activity_id: int,
+                    client: Client = Depends(current_client), db=Depends(get_db)):
+    from ..services.health import commands as health_c
+    try:
+        health_c.handle(db, health_c.DeleteActivity(
+            client_id=client.id, activity_id=activity_id, actor_id=client.user_id))
+        flash(request, "Activity deleted.", "success")
+    except health_c.HealthError as exc:
+        flash(request, str(exc), "error")
+    return RedirectResponse("/client/activities", status_code=303)
+
+
 @router.get("/program")
 def program_page(request: Request, client: Client = Depends(current_client), db=Depends(get_db)):
     weeks = db.scalars(
