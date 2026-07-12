@@ -19,7 +19,7 @@
       <auth-provider>no-auth</auth-provider>
       <schema-mapping />
     </data-source>
-    <data-source name="sanctuary [2]" uuid="18484ad7-ea12-492a-8c56-0f00ba4ea7b7">
+    <data-source name="sanctuary [2]" uuid="aa71ddbf-8ca2-4deb-9165-b7f7c1cddce8">
       <database-info product="SQLite" version="3.51.1" jdbc-version="4.2" driver-name="SQLite JDBC" driver-version="3.51.1.0" dbms="SQLITE" exact-version="3.51.1" exact-driver-version="3.51">
         <identifier-quote-string>&quot;</identifier-quote-string>
       </database-info>
