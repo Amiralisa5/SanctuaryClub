@@ -4,7 +4,7 @@
 {% block content %}
 <div class="page-head">
   <h1>Coach {{ client.coach.user.full_name }}'s calendar</h1>
-  <div class="sub">Live availability — pick an open slot and <a href="/client/bookings">book it</a>.</div>
+  <div class="sub">Live availability — tap an open slot to book it.</div>
 </div>
 
 <div class="card cal-card">
@@ -15,15 +15,7 @@
     <div class="cal-cell {{ 'dim' if d.month != month }} {{ 'today' if d == today }}">
       <span class="cal-date">{{ d.day }}</span>
       {% for slot in availability.get(d, []) %}
-        {% set tone = {'open': 'PRESENT', 'limited': 'EXCUSED', 'full': 'ABSENT', 'blocked': 'CANCELLED'}[slot.status] %}
-        {% if slot.status in ('open', 'limited') and d >= today %}
-        <a class="cal-ev ev-{{ tone }}" href="/client/bookings"
-           title="{{ slot.section.label }}: {{ slot.left }} spot(s) left">
-          {{ '%02d'|format(slot.section.start_hour) }}h · {{ slot.left }} left</a>
-        {% else %}
-        <span class="cal-ev ev-{{ tone }}" title="{{ slot.section.label }}: {{ slot.status }}">
-          {{ '%02d'|format(slot.section.start_hour) }}h {{ slot.status }}</span>
-        {% endif %}
+        {{ cal.availability_event(slot, d, today) }}
       {% endfor %}
     </div>
     {% endfor %}{% endfor %}

@@ -2,7 +2,7 @@ from sqlalchemy import select
 
 from . import config
 from .database import SessionLocal
-from .models import Role, Setting, TimeSection, User
+from .models import Exercise, Role, Setting, TimeSection, User
 from .security import hash_password
 
 
@@ -12,6 +12,7 @@ def seed_all() -> None:
         _seed_sections(db)
         _seed_settings(db)
         _seed_admin(db)
+        _seed_exercises(db)
         db.commit()
     finally:
         db.close()
@@ -46,3 +47,11 @@ def _seed_admin(db) -> None:
         full_name=config.ADMIN_NAME,
         role=Role.ADMIN,
     ))
+
+
+def _seed_exercises(db) -> None:
+    if not config.SEED_EXERCISES or db.scalar(select(Exercise).limit(1)):
+        return
+    from .seed_exercises import load_exercise_library
+
+    load_exercise_library(db)

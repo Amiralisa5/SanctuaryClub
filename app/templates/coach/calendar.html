@@ -4,7 +4,7 @@
 {% block content %}
 <div class="page-head">
   <h1>Schedule</h1>
-  <div class="sub">All your clients' sessions this month.</div>
+  <div class="sub">All your clients' sessions — click a name to manage bookings.</div>
 </div>
 
 <div class="card cal-card">
@@ -12,11 +12,11 @@
   {{ cal.grid_open(weekday_names) }}
   <div class="cal-grid">
     {% for week in grid %}{% for d in week %}
-    <div class="cal-cell {{ 'dim' if d.month != month }} {{ 'today' if d == today }}">
+    <div class="cal-cell {{ 'dim' if d.month != month }} {{ 'today' if d == today }} {{ 'has-events' if by_day.get(d) }}">
       <span class="cal-date">{{ d.day }}</span>
       {% for b in by_day.get(d, []) %}
         {% set tone = b.attendance.status.value if b.attendance else ('CANCELLED' if b.status.value == 'CANCELLED' else 'BOOKED') %}
-        <a class="cal-ev ev-{{ tone }}" href="/coach/clients/{{ b.client_id }}"
+        <a class="cal-ev ev-{{ tone }}" href="/coach/clients/{{ b.client_id }}#booking-{{ b.id }}"
            title="{{ b.section.label }} — {{ b.client.user.full_name }} ({{ tone }})">
           {{ '%02d'|format(b.section.start_hour) }}h {{ b.client.user.full_name.split()[0] }}</a>
       {% endfor %}
@@ -34,21 +34,30 @@
 
 <div class="card">
   <h2>Agenda</h2>
-  {% for b in bookings %}
-  <div class="list-row">
-    <span class="slot-chip"><span class="d">{{ b.date.strftime('%b %-d') }}</span>{{ b.section.label[:5] }}</span>
-    <div class="grow">
-      <div class="title"><a href="/coach/clients/{{ b.client_id }}">{{ b.client.user.full_name }}</a></div>
-      <div class="sub">{{ b.date.strftime('%A') }} · {{ b.section.label }}</div>
+  <div class="session-list compact">
+    {% for b in bookings %}
+    <div class="session-card" id="booking-{{ b.id }}">
+      <div class="session-main">
+        <div class="session-when">
+          <span class="session-date">{{ b.date.strftime('%a %b %-d') }}</span>
+          <span class="session-time">{{ b.section.label }}</span>
+        </div>
+        <div class="session-meta">
+          <a href="/coach/clients/{{ b.client_id }}">{{ b.client.user.full_name }}</a>
+          {% if b.attendance %}
+          <span class="badge badge-{{ b.attendance.status.value }}">{{ b.attendance.status.value }}</span>
+          {% else %}
+          <span class="badge badge-{{ b.status.value }}">{{ b.status.value }}</span>
+          {% endif %}
+        </div>
+      </div>
+      {% if b.id in modifiable_ids %}
+      <a class="btn sm" href="/coach/clients/{{ b.client_id }}#booking-{{ b.id }}">Manage</a>
+      {% endif %}
     </div>
-    {% if b.attendance %}
-      <span class="badge badge-{{ b.attendance.status.value }}">{{ b.attendance.status.value }}</span>
     {% else %}
-      <span class="badge badge-{{ b.status.value }}">{{ b.status.value }}</span>
-    {% endif %}
+    <div class="empty"><span class="glyph">📅</span>No sessions this month.</div>
+    {% endfor %}
   </div>
-  {% else %}
-  <div class="empty"><span class="glyph">📅</span>No sessions this month.</div>
-  {% endfor %}
 </div>
 {% endblock %}

@@ -99,11 +99,13 @@ def calendar_view(request: Request, year: int | None = None, month: int | None =
     by_day: dict = {}
     for b in bookings:
         by_day.setdefault(b.date, []).append(b)
+    modifiable_ids = {b.id for b in bookings if scheduling.is_modifiable(b, current)}
     return render(request, "coach/calendar.html", user=coach.user,
                   grid=month_grid(year, month), by_day=by_day, bookings=bookings,
                   year=year, month=month, today=current.date(),
                   weekday_names=WEEKDAY_NAMES,
-                  prev_ym=shift_month(year, month, -1), next_ym=shift_month(year, month, 1))
+                  prev_ym=shift_month(year, month, -1), next_ym=shift_month(year, month, 1),
+                  modifiable_ids=modifiable_ids)
 
 
 @router.get("/classes")
@@ -189,6 +191,7 @@ def client_detail(request: Request, client_id: int, coach: Coach = Depends(curre
         select(Booking).where(Booking.client_id == client.id)
         .order_by(Booking.date.desc()).limit(40)
     ).all()
+    modifiable_ids = {b.id for b in bookings if scheduling.is_modifiable(b, current)}
     programs = db.scalars(
         select(ProgramWeek).where(ProgramWeek.client_id == client.id)
         .order_by(ProgramWeek.week_start.desc())
@@ -200,7 +203,8 @@ def client_detail(request: Request, client_id: int, coach: Coach = Depends(curre
     return render(request, "coach/client_detail.html", user=coach.user, client=client,
                   plan=plan, summary=summary, bookings=bookings, programs=programs,
                   templates=templates, sections=_sections(db), current=current,
-                  attendance_statuses=list(AttendanceStatus))
+                  attendance_statuses=list(AttendanceStatus),
+                  modifiable_ids=modifiable_ids)
 
 
 @router.get("/clients/{client_id}/activities")
@@ -253,10 +257,15 @@ def book_for_client(request: Request, client_id: int, booking_date: date = Form(
     client = owned_client(db, coach, client_id)
     section = db.get(TimeSection, section_id)
     if section is None:
-        raise HTTPException(404)
+        flash(request, "That time slot no longer exists.", "error")
+        return RedirectResponse(f"/coach/clients/{client.id}", status_code=303)
+    reason = scheduling.validate_slot(db, client, booking_date, section)
+    if reason:
+        flash(request, reason, "error")
+        return RedirectResponse(f"/coach/clients/{client.id}", status_code=303)
     try:
         scheduling.create_booking(db, client, booking_date, section, coach.user)
-        flash(request, f"Booked {booking_date} {section.label}.", "success")
+        flash(request, f"Booked {booking_date.strftime('%A %b %-d')} · {section.label}.", "success")
     except BookingError as exc:
         flash(request, str(exc), "error")
     return RedirectResponse(f"/coach/clients/{client.id}", status_code=303)
@@ -289,6 +298,29 @@ def cancel_booking(request: Request, booking_id: int, coach: Coach = Depends(cur
     try:
         scheduling.cancel_booking(db, booking, coach.user)
         flash(request, "Booking cancelled.", "success")
+    except BookingError as exc:
+        flash(request, str(exc), "error")
+    return RedirectResponse(f"/coach/clients/{booking.client_id}", status_code=303)
+
+
+@router.post("/bookings/{booking_id}/reschedule")
+def reschedule_booking(request: Request, booking_id: int, new_date: date = Form(...),
+                       new_section_id: int = Form(...),
+                       coach: Coach = Depends(current_coach), db=Depends(get_db)):
+    booking = owned_booking(db, coach, booking_id)
+    section = db.get(TimeSection, new_section_id)
+    if section is None:
+        flash(request, "That time slot no longer exists.", "error")
+        return RedirectResponse(f"/coach/clients/{booking.client_id}", status_code=303)
+    reason = scheduling.validate_slot(
+        db, booking.client, new_date, section, exclude_booking_id=booking.id
+    )
+    if reason:
+        flash(request, reason, "error")
+        return RedirectResponse(f"/coach/clients/{booking.client_id}", status_code=303)
+    try:
+        scheduling.reschedule_booking(db, booking, new_date, section, coach.user)
+        flash(request, f"Moved to {new_date.strftime('%A %b %-d')} · {section.label}.", "success")
     except BookingError as exc:
         flash(request, str(exc), "error")
     return RedirectResponse(f"/coach/clients/{booking.client_id}", status_code=303)

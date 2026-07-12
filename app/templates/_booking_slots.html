@@ -1,0 +1,92 @@
+{# Interactive slot picker + session list. Requires: day_slots, sections, selected_date,
+   selected_section_id (optional), editing (optional), modifiable_ids, bookings,
+   book_action, cancel_action_prefix, reschedule_action_prefix #}
+
+{% macro slot_picker(day_slots, selected_date, selected_section_id=None, editing=None,
+                     picker_action='/client/bookings', book_action='/client/bookings',
+                     reschedule_action_prefix='/client/bookings', today=None) %}
+<form method="get" action="{{ picker_action }}" class="slot-picker-head">
+  {% if editing %}<input type="hidden" name="edit" value="{{ editing.id }}">{% endif %}
+  <label class="slot-date-label">
+    <span class="eyebrow">Pick a day</span>
+    <input type="date" name="booking_date" value="{{ selected_date.isoformat() }}"
+           {% if today %}min="{{ today.isoformat() }}"{% endif %}
+           onchange="this.form.submit()">
+  </label>
+  <div class="slot-day-title">{{ selected_date.strftime('%A, %B %-d') }}</div>
+</form>
+
+<div class="slot-grid">
+  {% for slot in day_slots %}
+  {% set sid = slot.section.id %}
+  {% set picked = selected_section_id == sid %}
+  <div class="slot-card slot-{{ slot.state }} {{ 'slot-picked' if picked }}">
+    <div class="slot-time">{{ slot.section.label }}</div>
+    {% if slot.state == 'yours' %}
+      <div class="slot-status tone-good">Your booking</div>
+      <div class="slot-note">{{ slot.reason }}</div>
+    {% elif slot.state == 'open' %}
+      <div class="slot-status tone-good">Available</div>
+      {% if editing %}
+      <form method="post" action="{{ reschedule_action_prefix }}/{{ editing.id }}/reschedule">
+        <input type="hidden" name="new_date" value="{{ selected_date.isoformat() }}">
+        <input type="hidden" name="new_section_id" value="{{ sid }}">
+        <button class="btn primary sm block">Move here</button>
+      </form>
+      {% else %}
+      <form method="post" action="{{ book_action }}">
+        <input type="hidden" name="booking_date" value="{{ selected_date.isoformat() }}">
+        <input type="hidden" name="section_id" value="{{ sid }}">
+        <button class="btn primary sm block">Book this slot</button>
+      </form>
+      {% endif %}
+    {% else %}
+      <div class="slot-status tone-bad">Unavailable</div>
+      <div class="slot-note">{{ slot.reason }}</div>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+{% endmacro %}
+
+
+{% macro session_row(b, modifiable_ids, sections, cancel_prefix, reschedule_prefix,
+                      show_client=false, today=None, cutoff_hours=2, editing=None,
+                      picker_action='/client/bookings') %}
+<div class="session-card {{ 'session-past' if b.status.value != 'BOOKED' or (b.date < today if today is defined else false) }}">
+  <div class="session-main">
+    <div class="session-when">
+      <span class="session-date">{{ b.date.strftime('%a %b %-d') }}</span>
+      <span class="session-time">{{ b.section.label }}</span>
+    </div>
+    <div class="session-meta">
+      {% if show_client %}
+      <span class="session-who">{{ b.client.user.full_name }}</span>
+      {% endif %}
+      <span class="badge badge-{{ b.status.value }}">{{ b.status.value }}</span>
+      {% if b.attendance %}
+      <span class="badge badge-{{ b.attendance.status.value }}">{{ b.attendance.status.value }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if b.id in modifiable_ids %}
+  <div class="session-actions">
+    <a class="btn sm" href="?edit={{ b.id }}&booking_date={{ b.date.isoformat() }}">Reschedule</a>
+    <form method="post" action="{{ cancel_prefix }}/{{ b.id }}/cancel" class="inline"
+          onsubmit="return confirm('Cancel this session?');">
+      <button class="btn danger sm" type="submit">Cancel</button>
+    </form>
+  </div>
+  {% elif b.status.value == 'BOOKED' %}
+  <div class="session-note muted">Locked — changes close {{ cutoff_hours if cutoff_hours is defined else 2 }}h before start</div>
+  {% endif %}
+
+  {% if editing and editing.id == b.id %}
+  <div class="session-edit-panel">
+    <div class="eyebrow">Choose a new slot above, or cancel editing</div>
+    <a class="btn sm" href="{{ picker_action if picker_action is defined else '/client/bookings' }}">Done</a>
+  </div>
+  {% endif %}
+</div>
+{% endmacro %}

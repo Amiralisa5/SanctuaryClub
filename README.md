@@ -14,6 +14,7 @@ pip install -r requirements.txt
 python -m app.demo
 
 # optional: load the 873-exercise starter library (public-domain Free Exercise DB)
+# Also runs automatically on first startup when the exercises table is empty.
 python -m app.seed_exercises
 
 uvicorn app.main:app --reload

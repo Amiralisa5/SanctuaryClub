@@ -1,5 +1,5 @@
 {# Shared month-calendar grid. Expects: grid, by_day, year, month, today,
-   weekday_names, prev_ym, next_ym, base_url, event macro name via caller #}
+   weekday_names, prev_ym, next_ym, base_url #}
 {% macro month_nav(base_url, year, month, prev_ym, next_ym) %}
 <div class="cal-nav">
   <a class="btn sm" href="{{ base_url }}?year={{ prev_ym[0] }}&month={{ prev_ym[1] }}">← Prev</a>
@@ -12,4 +12,31 @@
 <div class="cal-weekdays">
   {% for name in weekday_names %}<span>{{ name }}</span>{% endfor %}
 </div>
+{% endmacro %}
+
+{% macro day_cell(d, month, today, events=[], dim_outside=true) %}
+<div class="cal-cell {{ 'dim' if dim_outside and d.month != month }} {{ 'today' if d == today }} {{ 'has-events' if events }}">
+  <span class="cal-date">{{ d.day }}</span>
+  {{ caller() if caller is defined else '' }}
+  {% for ev in events %}
+  {{ ev }}
+  {% endfor %}
+</div>
+{% endmacro %}
+
+{% macro booking_event(b, href, label, tone=None) %}
+{% set tone = tone or (b.attendance.status.value if b.attendance else ('CANCELLED' if b.status.value == 'CANCELLED' else 'BOOKED')) %}
+<a class="cal-ev ev-{{ tone }}" href="{{ href }}" title="{{ b.section.label }} · {{ tone }}">{{ label }}</a>
+{% endmacro %}
+
+{% macro availability_event(slot, d, today, book_base='/client/bookings') %}
+{% set tone = {'open': 'PRESENT', 'limited': 'EXCUSED', 'full': 'ABSENT', 'blocked': 'CANCELLED'}[slot.status] %}
+{% if slot.status in ('open', 'limited') and d >= today %}
+<a class="cal-ev ev-{{ tone }}" href="{{ book_base }}?booking_date={{ d.isoformat() }}&section_id={{ slot.section.id }}"
+   title="{{ slot.section.label }}: {{ slot.left }} spot(s) left">
+  {{ '%02d'|format(slot.section.start_hour) }}h · {{ slot.left }} left</a>
+{% else %}
+<span class="cal-ev ev-{{ tone }}" title="{{ slot.section.label }}: {{ slot.status }}">
+  {{ '%02d'|format(slot.section.start_hour) }}h {{ slot.status }}</span>
+{% endif %}
 {% endmacro %}

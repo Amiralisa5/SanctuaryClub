@@ -567,6 +567,70 @@ details.reveal > .reveal-body {
 .ev-EXCUSED { background: var(--warn-soft); color: var(--warn); }
 .ev-CANCELLED { background: var(--neutral-soft); color: var(--muted); text-decoration: line-through; }
 .cal-legend { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .8rem; }
+.cal-cell.has-events { background: color-mix(in srgb, var(--brand-soft) 35%, var(--surface-2)); }
+
+/* ---------- Booking slot picker ---------- */
+
+.booking-layout { align-items: start; }
+.booking-panel { position: sticky; top: 1rem; }
+.slot-picker-head {
+  display: flex; align-items: end; justify-content: space-between; gap: .8rem;
+  margin-bottom: .9rem; flex-wrap: wrap;
+}
+.slot-date-label { flex: 1; min-width: 180px; margin: 0; }
+.slot-day-title { font-weight: 750; font-size: 1rem; color: var(--ink); }
+.slot-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: .55rem;
+}
+.slot-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: .65rem .7rem;
+  display: flex; flex-direction: column; gap: .35rem;
+  min-height: 118px;
+}
+.slot-card.slot-open { border-color: color-mix(in srgb, var(--good) 35%, var(--border)); }
+.slot-card.slot-yours { border-color: color-mix(in srgb, var(--brand) 45%, var(--border)); background: var(--brand-soft); }
+.slot-card.slot-closed { opacity: .72; background: var(--surface-2); }
+.slot-card.slot-picked { box-shadow: inset 0 0 0 2px var(--brand); }
+.slot-time { font-weight: 750; font-size: .92rem; }
+.slot-status { font-size: .78rem; font-weight: 700; }
+.slot-status.tone-good { color: var(--good); }
+.slot-status.tone-bad { color: var(--bad); }
+.slot-note { font-size: .76rem; color: var(--muted); line-height: 1.35; }
+
+.session-list { display: flex; flex-direction: column; gap: .55rem; }
+.session-list.compact .session-card { padding: .55rem .65rem; }
+.session-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: .75rem .85rem;
+  display: flex; flex-direction: column; gap: .55rem;
+}
+.session-main { display: flex; align-items: center; justify-content: space-between; gap: .8rem; flex-wrap: wrap; }
+.session-when { display: flex; flex-direction: column; gap: .1rem; }
+.session-date { font-weight: 750; }
+.session-time { color: var(--muted); font-size: .88rem; font-weight: 600; }
+.session-meta { display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; }
+.session-actions { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; }
+.session-actions.wrap { justify-content: flex-start; }
+.session-note { font-size: .78rem; }
+.session-edit-panel {
+  border-top: 1px dashed var(--border);
+  padding-top: .55rem;
+  display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+}
+.quota-card { padding-bottom: 1rem; }
+.alert {
+  border-radius: 10px; padding: .75rem .9rem; margin-bottom: .9rem;
+  border: 1px solid var(--border); background: var(--surface-2);
+}
+.alert.error { border-color: color-mix(in srgb, var(--bad) 35%, var(--border)); background: var(--bad-soft); color: var(--bad); }
+.alert.info { border-color: color-mix(in srgb, var(--brand) 35%, var(--border)); background: var(--brand-soft); color: var(--brand); }
+
 @media (max-width: 700px) {
   .cal-cell { min-height: 52px; padding: .2rem; }
   .cal-ev {

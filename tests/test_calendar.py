@@ -3,8 +3,13 @@ from datetime import date
 from sqlalchemy import select
 
 from app.models import Booking, TimeSection
+from app.services import scheduling
 
 from .conftest import login, make_client, make_coach
+
+
+def get_section(db, index=2):
+    return db.scalar(select(TimeSection).where(TimeSection.index == index))
 
 
 def make_booking(db, client, d, section_index=2):
@@ -51,6 +56,28 @@ def test_calendar_month_navigation(client_http, db):
     # prev/next wrap across year boundaries
     assert "/client/calendar?year=2026&month=11" in page.text
     assert "/client/calendar?year=2027&month=1" in page.text
+
+
+def test_client_bookings_page_shows_slot_picker(client_http, db):
+    coach = make_coach(db)
+    make_client(db, coach)
+    login(client_http, "client@test.local", "client-secret")
+    page = client_http.get("/client/bookings?booking_date=2026-07-15")
+    assert page.status_code == 200
+    assert "Choose a slot" in page.text
+    assert "Book this slot" in page.text
+    assert "06:00-08:00" in page.text
+
+
+def test_client_can_cancel_and_reschedule(client_http, db):
+    coach = make_coach(db)
+    client = make_client(db, coach)
+    booking = scheduling.create_booking(db, client, date(2026, 7, 15), get_section(db), coach.user)
+    login(client_http, "client@test.local", "client-secret")
+    page = client_http.get("/client/bookings")
+    assert "Cancel" in page.text and "Reschedule" in page.text
+    resp = client_http.post(f"/client/bookings/{booking.id}/cancel", follow_redirects=False)
+    assert resp.status_code == 303
 
 
 def test_calendar_requires_login(client_http):

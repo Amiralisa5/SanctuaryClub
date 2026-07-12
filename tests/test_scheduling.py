@@ -126,6 +126,48 @@ def test_reschedule_blocked_within_2h_of_start(db):
         scheduling.cancel_booking(db, booking, client.user)
 
 
+def test_reschedule_rejects_same_slot(db):
+    coach = make_coach(db)
+    client = make_client(db, coach)
+    section = get_section(db)
+    booking = scheduling.create_booking(db, client, TOMORROW, section, coach.user)
+    with pytest.raises(BookingError, match="different"):
+        scheduling.reschedule_booking(db, booking, TOMORROW, section, coach.user)
+
+
+def test_reschedule_rejects_duplicate_target_slot(db):
+    coach = make_coach(db)
+    client = make_client(db, coach)
+    section_a = get_section(db, 2)
+    section_b = get_section(db, 3)
+    first = scheduling.create_booking(db, client, TOMORROW, section_a, coach.user)
+    second = scheduling.create_booking(db, client, date(2026, 7, 10), section_b, coach.user)
+    with pytest.raises(BookingError, match="Already booked"):
+        scheduling.reschedule_booking(db, second, TOMORROW, section_a, coach.user)
+    assert first.date == TOMORROW
+
+
+def test_validate_slot_returns_message(db):
+    coach = make_coach(db)
+    client = make_client(db, coach)
+    section = get_section(db)
+    scheduling.create_booking(db, client, TOMORROW, section, coach.user)
+    assert scheduling.validate_slot(db, client, TOMORROW, section).startswith("Already booked")
+
+
+def test_day_slots_marks_owned_and_open(db):
+    coach = make_coach(db)
+    client = make_client(db, coach)
+    section = get_section(db)
+    scheduling.create_booking(db, client, TOMORROW, section, coach.user)
+    sections = db.scalars(select(TimeSection).order_by(TimeSection.index)).all()
+    slots = scheduling.day_slots_for_client(db, client, TOMORROW, sections)
+    owned = next(s for s in slots if s["section"].id == section.id)
+    open_slot = next(s for s in slots if s["section"].id == get_section(db, 3).id)
+    assert owned["state"] == "yours"
+    assert open_slot["state"] == "open"
+
+
 def test_bulk_wizard_books_matching_weekdays(db):
     coach = make_coach(db)
     client = make_client(db, coach, quota=None)  # unlimited

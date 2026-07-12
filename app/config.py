@@ -65,3 +65,7 @@ ALLOWED_MEDIA_EXTENSIONS = {".mp4", ".mov", ".webm", ".m4v", ".gif", ".jpg", ".j
 # convenient for local dev and tests. Set to "0" in production and manage the
 # schema with Alembic migrations instead (alembic upgrade head).
 AUTO_CREATE_TABLES = os.environ.get("AUTO_CREATE_TABLES", "1") == "1"
+
+# When "1" (default), the bundled exercise library is loaded on startup if the
+# exercises table is empty. Set to "0" to skip (e.g. in tests).
+SEED_EXERCISES = os.environ.get("SEED_EXERCISES", "1") == "1"

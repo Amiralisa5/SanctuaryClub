@@ -1,39 +1,42 @@
 {% extends "base.html" %}
+{% import "_calendar.html" as cal %}
+{% import "_booking_slots.html" as book %}
 {% block title %}Bookings — SanctuaryClub{% endblock %}
 {% block content %}
 <div class="page-head">
-  <h1>Bookings</h1>
+  <h1>Book a session</h1>
   <div class="sub">
-    {% if plan %}{{ used }} of {{ plan.quota_label }} sessions used in {{ current.strftime('%B') }}.
-    {% else %}No plan for this month — ask your coach to set one before booking.{% endif %}
+    Pick an open slot — duplicates and full sessions are blocked automatically.
+    <a href="/client/calendar">View calendar →</a> ·
+    <a href="/client/coach-calendar">Coach availability →</a>
   </div>
 </div>
 
 {% if plan and plan.quota %}
-<div class="card" style="padding-bottom:1rem;">
-  <div class="meter-row"><span>{{ current.strftime('%B') }} plan</span><span><strong>{{ used }}</strong> / {{ plan.quota }}</span></div>
+<div class="card quota-card">
+  <div class="meter-row"><span>{{ current.strftime('%B') }} plan</span><span><strong>{{ used }}</strong> / {{ plan.quota }} sessions</span></div>
   <div class="meter"><span style="width: {{ [used / plan.quota * 100, 100]|min }}%"></span></div>
 </div>
+{% elif not plan %}
+<div class="alert error">No plan for this month — ask your coach to set one before booking.</div>
 {% endif %}
 
-<div class="grid2">
-  <div class="card">
-    <h2>Book a session</h2>
-    <form method="post" action="/client/bookings">
-      <label>Date <input type="date" name="booking_date" required></label>
-      <div class="eyebrow">Time slot</div>
-      <div class="chip-group">
-        {% for s in sections %}
-        <label class="chip"><input type="radio" name="section_id" value="{{ s.id }}" {{ 'checked' if loop.first }}>{{ s.label }}</label>
-        {% endfor %}
-      </div>
-      <button class="btn primary block">Book session</button>
-    </form>
+{% if editing %}
+<div class="alert info">Rescheduling <strong>{{ editing.date.strftime('%A %b %-d') }} · {{ editing.section.label }}</strong> — pick a new open slot below.</div>
+{% endif %}
+
+<div class="grid2 booking-layout">
+  <div class="card booking-panel">
+    <h2>{% if editing %}Move session{% else %}Choose a slot{% endif %}</h2>
+    {{ book.slot_picker(day_slots, selected_date, selected_section_id, editing,
+                         book_action='/client/bookings',
+                         reschedule_action_prefix='/client/bookings',
+                         today=current.date()) }}
   </div>
 
   <div class="card">
     <h2>Monthly wizard</h2>
-    <p class="muted" style="margin-top:0;">Pick your training days once — we book the whole month.</p>
+    <p class="muted" style="margin-top:0;">Book every matching weekday for the whole month in one go. Skipped days show why.</p>
     <form method="post" action="/client/bookings/wizard">
       <div class="row">
         <label style="flex:1;">Year <input type="number" name="year" value="{{ current.year }}" required></label>
@@ -58,40 +61,16 @@
 
 <div class="card">
   <h2>Your sessions</h2>
-  <p class="muted" style="margin-top:0;">Rescheduling and cancellation close 2 hours before start.</p>
-  {% for b in bookings %}
-  <div class="list-row">
-    <span class="slot-chip"><span class="d">{{ b.date.strftime('%b %-d') }}</span>{{ b.section.label[:5] }}</span>
-    <div class="grow">
-      <div class="title">{{ b.date.strftime('%A') }} <span class="badge badge-{{ b.status.value }}">{{ b.status.value }}</span></div>
-      <div class="sub">{{ b.section.label }}
-        {% if b.attendance %} · <span class="badge badge-{{ b.attendance.status.value }}">{{ b.attendance.status.value }}</span>{% endif %}
-      </div>
-      {% if b.id in modifiable_ids %}
-      <details class="reveal">
-        <summary>Reschedule</summary>
-        <div class="reveal-body">
-          <form method="post" action="/client/bookings/{{ b.id }}/reschedule">
-            <label>New date <input type="date" name="new_date" required></label>
-            <div class="chip-group">
-              {% for s in sections %}
-              <label class="chip"><input type="radio" name="new_section_id" value="{{ s.id }}" {{ 'checked' if s.id == b.section_id }}>{{ s.label }}</label>
-              {% endfor %}
-            </div>
-            <button class="btn primary sm">Move session</button>
-          </form>
-        </div>
-      </details>
-      {% endif %}
-    </div>
-    {% if b.id in modifiable_ids %}
-    <form method="post" action="/client/bookings/{{ b.id }}/cancel" class="inline">
-      <button class="btn danger sm">Cancel</button>
-    </form>
-    {% endif %}
+  <p class="muted" style="margin-top:0;">Reschedule or cancel up to 2 hours before start.</p>
+  <div class="session-list">
+    {% for b in bookings %}
+      {{ book.session_row(b, modifiable_ids, sections,
+                           '/client/bookings', '/client/bookings',
+                           today=current.date(), cutoff_hours=2, editing=editing,
+                           picker_action='/client/bookings') }}
+    {% else %}
+    <div class="empty"><span class="glyph">📅</span>No bookings yet — pick an open slot above.</div>
+    {% endfor %}
   </div>
-  {% else %}
-  <div class="empty"><span class="glyph">📅</span>No bookings yet — book your first session above.</div>
-  {% endfor %}
 </div>
 {% endblock %}

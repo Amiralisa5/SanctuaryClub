@@ -118,42 +118,64 @@
 
 <div class="card">
   <h2>Recent bookings</h2>
+  <p class="muted" style="margin-top:0;">Mark attendance, reschedule, or cancel up to 2 hours before start.</p>
+  <div class="session-list">
   {% for b in bookings %}
-  <div class="list-row">
-    <span class="slot-chip"><span class="d">{{ b.date.strftime('%b %-d') }}</span>{{ b.section.label[:5] }}</span>
-    <div class="grow">
-      <div class="title">{{ b.date.strftime('%A') }}
+  <div class="session-card" id="booking-{{ b.id }}">
+    <div class="session-main">
+      <div class="session-when">
+        <span class="session-date">{{ b.date.strftime('%a %b %-d') }}</span>
+        <span class="session-time">{{ b.section.label }}</span>
+      </div>
+      <div class="session-meta">
         <span class="badge badge-{{ b.status.value }}">{{ b.status.value }}</span>
         {% if b.attendance %}<span class="badge badge-{{ b.attendance.status.value }}">{{ b.attendance.status.value }}{{ ' · auto' if b.attendance.auto }}</span>{% endif %}
       </div>
-      {% if b.attendance and b.attendance.status.value == 'PRESENT' %}
-      <div class="sub">
-        {% if b.attendance.weight_kg %}{{ b.attendance.weight_kg }} kg · {% endif %}
-        {% if b.attendance.rpe %}RPE {{ b.attendance.rpe }} · {% endif %}
-        {% if b.attendance.completion_pct is not none %}{{ b.attendance.completion_pct }}% done{% endif %}
-        {% if b.attendance.notes %} — “{{ b.attendance.notes }}”{% endif %}
-      </div>
-      {% endif %}
-      {% if b.status.value == 'BOOKED' %}
+    </div>
+    {% if b.attendance and b.attendance.status.value == 'PRESENT' %}
+    <div class="slot-note">
+      {% if b.attendance.weight_kg %}{{ b.attendance.weight_kg }} kg · {% endif %}
+      {% if b.attendance.rpe %}RPE {{ b.attendance.rpe }} · {% endif %}
+      {% if b.attendance.completion_pct is not none %}{{ b.attendance.completion_pct }}% done{% endif %}
+      {% if b.attendance.notes %} — “{{ b.attendance.notes }}”{% endif %}
+    </div>
+    {% endif %}
+    {% if b.status.value == 'BOOKED' %}
+    <div class="session-actions wrap">
+      <form method="post" action="/coach/attendance/{{ b.id }}" class="inline row">
+        <select name="status">
+          {% for st in attendance_statuses %}<option value="{{ st.value }}" {{ 'selected' if b.attendance and b.attendance.status == st }}>{{ st.value.title() }}</option>{% endfor %}
+        </select>
+        <button class="btn sm">Mark attendance</button>
+      </form>
+      {% if b.id in modifiable_ids %}
       <details class="reveal">
-        <summary>Manage</summary>
+        <summary>Reschedule</summary>
         <div class="reveal-body">
-          <form method="post" action="/coach/attendance/{{ b.id }}" class="inline">
-            <select name="status">
-              {% for st in attendance_statuses %}<option value="{{ st.value }}">{{ st.value.title() }}</option>{% endfor %}
-            </select>
-            <button class="btn sm">Mark attendance</button>
-          </form>
-          <form method="post" action="/coach/bookings/{{ b.id }}/cancel" class="inline">
-            <button class="btn danger sm">Cancel booking</button>
+          <form method="post" action="/coach/bookings/{{ b.id }}/reschedule">
+            <label>New date <input type="date" name="new_date" value="{{ b.date.isoformat() }}" required></label>
+            <div class="chip-group">
+              {% for s in sections %}
+              <label class="chip"><input type="radio" name="new_section_id" value="{{ s.id }}" {{ 'checked' if s.id == b.section_id }}>{{ s.label }}</label>
+              {% endfor %}
+            </div>
+            <button class="btn primary sm">Move session</button>
           </form>
         </div>
       </details>
+      <form method="post" action="/coach/bookings/{{ b.id }}/cancel" class="inline"
+            onsubmit="return confirm('Cancel this booking?');">
+        <button class="btn danger sm" type="submit">Cancel</button>
+      </form>
+      {% else %}
+      <span class="session-note muted">Locked — within 2h of start</span>
       {% endif %}
     </div>
+    {% endif %}
   </div>
   {% else %}
   <div class="empty"><span class="glyph">📅</span>No bookings yet.</div>
   {% endfor %}
+  </div>
 </div>
 {% endblock %}
