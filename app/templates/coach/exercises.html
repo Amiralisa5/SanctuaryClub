@@ -3,12 +3,30 @@
 {% block content %}
 <div class="page-head">
   <h1>Exercise library</h1>
-  <div class="sub">{{ exercises|length }} exercises, shared across coaches — with demo videos.</div>
+  <div class="sub">{{ total }} exercise(s){{ ' matching' if q or tag }} — shared across coaches, with form notes and demo images.</div>
+</div>
+
+<div class="card">
+  <form method="get" action="/coach/exercises" class="row">
+    <input name="q" value="{{ q }}" placeholder="Search by name or tag (e.g. squat, chest, kettlebell)…" style="flex:1; margin:0;">
+    {% if tag %}<input type="hidden" name="tag" value="{{ tag }}">{% endif %}
+    <button class="btn primary">Search</button>
+    {% if q or tag %}<a class="btn" href="/coach/exercises">Clear</a>{% endif %}
+  </form>
+  {% for group, tags in filters.items() %}
+  <div class="eyebrow" style="margin-top:.7rem;">{{ group }}</div>
+  <div class="chip-group" style="margin-bottom:.2rem;">
+    {% for t in tags %}
+    <a class="chip {{ 'chip-active' if t == tag }}" style="text-decoration:none;"
+       href="/coach/exercises?tag={{ t|urlencode }}{% if q %}&q={{ q|urlencode }}{% endif %}">{{ t }}</a>
+    {% endfor %}
+  </div>
+  {% endfor %}
 </div>
 
 <div class="grid2">
   <div class="card">
-    <h2>Add exercise</h2>
+    <h2>Add your own exercise</h2>
     <form method="post" action="/coach/exercises" enctype="multipart/form-data">
       <label>Name <input name="name" required placeholder="e.g. Romanian deadlift"></label>
       <label>Description <textarea name="description" rows="2" placeholder="Cues, setup, safety notes…"></textarea></label>
@@ -17,9 +35,13 @@
       <label>Or upload a demo (video/image) <input type="file" name="media" accept="video/*,image/*"></label>
       <button class="btn primary">Add to library</button>
     </form>
+    <hr class="divider">
+    <p class="muted">Tip: load the full 873-exercise starter library (public domain) with
+      <code>python -m app.seed_exercises</code>.</p>
   </div>
+
   <div class="card">
-    <h2>Library</h2>
+    <h2>Exercises{% if total > 100 %} <span class="muted" style="font-weight:500;">(showing first 100 of {{ total }} — refine your search)</span>{% endif %}</h2>
     {% for e in exercises %}
     <div class="list-row">
       <span class="avatar">🏋️</span>
@@ -27,7 +49,12 @@
         <div class="title">{{ e.name }}
           {% if e.demo_url %}<a href="{{ e.demo_url }}" target="_blank" rel="noopener" class="badge badge-BOOKED" style="text-decoration:none;">▶ demo</a>{% endif %}
         </div>
-        {% if e.description %}<div class="sub">{{ e.description }}</div>{% endif %}
+        {% if e.description %}<div class="sub">{{ e.description|truncate(160) }}</div>{% endif %}
+        {% if e.tags %}
+        <div class="row" style="gap:.3rem; margin-top:.25rem;">
+          {% for t in e.tags.split(',')[:6] %}<span class="setchip">{{ t.strip() }}</span>{% endfor %}
+        </div>
+        {% endif %}
         <details class="reveal">
           <summary>Demo media</summary>
           <div class="reveal-body">
@@ -39,14 +66,9 @@
           </div>
         </details>
       </div>
-      {% if e.tags %}
-      <div class="row" style="gap:.3rem;">
-        {% for t in e.tags.split(',') %}<span class="setchip">{{ t.strip() }}</span>{% endfor %}
-      </div>
-      {% endif %}
     </div>
     {% else %}
-    <div class="empty"><span class="glyph">🏋️</span>No exercises yet — add the first one.</div>
+    <div class="empty"><span class="glyph">🏋️</span>No exercises match{% if q or tag %} — try a different search{% endif %}.</div>
     {% endfor %}
   </div>
 </div>

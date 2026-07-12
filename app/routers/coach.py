@@ -330,10 +330,32 @@ def _save_media(upload: UploadFile) -> str:
             out.write(chunk)
     return filename
 
+EXERCISE_FILTERS = {
+    "Muscles": ["abdominals", "biceps", "calves", "chest", "forearms", "glutes",
+                "hamstrings", "lats", "lower back", "middle back", "quadriceps",
+                "shoulders", "traps", "triceps"],
+    "Equipment": ["barbell", "dumbbell", "cable", "machine", "kettlebells",
+                  "bands", "body only"],
+    "Level": ["beginner", "intermediate", "expert"],
+    "Type": ["strength", "stretching", "cardio", "plyometrics", "powerlifting"],
+}
+
+
 @router.get("/exercises")
-def exercises_page(request: Request, coach: Coach = Depends(current_coach), db=Depends(get_db)):
-    exercises = db.scalars(select(Exercise).order_by(Exercise.name)).all()
-    return render(request, "coach/exercises.html", user=coach.user, exercises=exercises)
+def exercises_page(request: Request, q: str = "", tag: str = "",
+                   coach: Coach = Depends(current_coach), db=Depends(get_db)):
+    from sqlalchemy import func, or_
+
+    stmt = select(Exercise)
+    if q.strip():
+        needle = f"%{q.strip()}%"
+        stmt = stmt.where(or_(Exercise.name.ilike(needle), Exercise.tags.ilike(needle)))
+    if tag.strip():
+        stmt = stmt.where(Exercise.tags.ilike(f"%{tag.strip()}%"))
+    total = db.scalar(select(func.count()).select_from(stmt.subquery()))
+    exercises = db.scalars(stmt.order_by(Exercise.name).limit(100)).all()
+    return render(request, "coach/exercises.html", user=coach.user, exercises=exercises,
+                  total=total, q=q, tag=tag, filters=EXERCISE_FILTERS)
 
 
 @router.post("/exercises")

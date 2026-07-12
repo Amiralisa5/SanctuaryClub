@@ -13,6 +13,9 @@ pip install -r requirements.txt
 # optional: create demo coach/client accounts alongside the bootstrap admin
 python -m app.demo
 
+# optional: load the 873-exercise starter library (public-domain Free Exercise DB)
+python -m app.seed_exercises
+
 uvicorn app.main:app --reload
 ```
 
@@ -84,6 +87,16 @@ Strava syncs via the API (`Sync Strava now` on the Activities page), Apple
 Health / Samsung Health import via JSON from any export bridge, and anything
 can be logged manually. The service is CQRS-shaped: commands in
 `app/services/health/commands.py`, queries in `app/services/health/queries.py`.
+
+### Exercise library
+
+`python -m app.seed_exercises` loads a complete starter library of **873
+exercises** (bundled in `app/data/exercise_library.json`, derived from the
+public-domain [Free Exercise DB](https://github.com/yuhonas/free-exercise-db)):
+every entry has form instructions, muscle/equipment/level/type tags, and a demo
+image link. The loader is idempotent and never overwrites exercises you have
+added or edited. The library page supports search and one-tap tag filters
+(muscles, equipment, level, type).
 
 ### Email notifications
 
