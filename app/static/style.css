@@ -338,6 +338,7 @@ form.inline input, form.inline select { display: inline-block; width: auto; }
   background: var(--brand); border-color: var(--brand); color: #fff;
 }
 .chip.day { min-width: 52px; }
+.chip.chip-active { background: var(--brand); border-color: var(--brand); color: #fff; }
 
 /* Range sliders (check-in) */
 .slider-block { margin-bottom: 1.1rem; }
