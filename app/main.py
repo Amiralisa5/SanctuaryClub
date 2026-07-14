@@ -11,6 +11,7 @@ from starlette.middleware.sessions import SessionMiddleware
 from . import config
 from .database import SessionLocal, engine
 from .database import Base
+from .models import User
 from .routers import account, admin, auth, client, coach, notifications
 from .security import LoginRequired
 from .seed import seed_all
@@ -82,15 +83,31 @@ async def login_required_handler(request: Request, exc: LoginRequired):
     return RedirectResponse("/login", status_code=303)
 
 
+def _session_user(request: Request) -> User | None:
+    """Best-effort lookup of the logged-in user for error pages, so a signed-in
+    user hitting a 403/404 still sees their normal navigation shell instead of
+    the anonymous "please sign in" page."""
+    uid = request.session.get("uid")
+    if not uid:
+        return None
+    db = SessionLocal()
+    try:
+        user = db.get(User, uid)
+        return user if user and user.is_active else None
+    finally:
+        db.close()
+
+
 @app.exception_handler(403)
 async def forbidden_handler(request: Request, exc):
-    return render(request, "error.html", status_code=403,
+    return render(request, "error.html", user=_session_user(request), status_code=403,
                   message=getattr(exc, "detail", "You do not have access to this page."))
 
 
 @app.exception_handler(404)
 async def not_found_handler(request: Request, exc):
-    return render(request, "error.html", status_code=404, message="Page not found.")
+    return render(request, "error.html", user=_session_user(request), status_code=404,
+                  message="Page not found.")
 
 
 app.include_router(auth.router)

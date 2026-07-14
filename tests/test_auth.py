@@ -31,6 +31,19 @@ def test_client_cannot_access_admin_or_coach_pages(client_http, db):
     assert client_http.get("/client").status_code == 200
 
 
+def test_signed_in_user_sees_own_shell_on_403(client_http, db):
+    """A logged-in user hitting a 403 should still see their own dashboard nav,
+    not the anonymous "please sign in" error page."""
+    coach = make_coach(db)
+    make_client(db, coach)
+    login(client_http, "client@test.local", "client-secret")
+    page = client_http.get("/admin", follow_redirects=False)
+    assert page.status_code == 403
+    assert "Go to sign in" not in page.text
+    assert "Back home" in page.text
+    assert "/client/bookings" in page.text  # client nav is still rendered
+
+
 def test_coach_cannot_view_another_coachs_client(client_http, db):
     coach_a = make_coach(db, email="a@test.local", name="Coach A")
     coach_b = make_coach(db, email="b@test.local", name="Coach B")
