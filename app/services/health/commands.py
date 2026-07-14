@@ -205,6 +205,7 @@ def _refresh_strava_token(db, connection: HealthConnection) -> None:
     }, timeout=15)
     if response.status_code != 200:
         connection.status = "error"
+        db.commit()
         raise HealthError("Could not refresh the Strava connection — sign in with Strava again.")
     payload = response.json()
     connection.access_token = payload.get("access_token", "")
@@ -212,6 +213,10 @@ def _refresh_strava_token(db, connection: HealthConnection) -> None:
     if payload.get("expires_at"):
         connection.expires_at = datetime.fromtimestamp(
             int(payload["expires_at"]), tz=utils.TZ).replace(tzinfo=None)
+    # Commit immediately: Strava rotates refresh tokens on use, so if the rest of
+    # the sync fails after this point, the new token must not be rolled back —
+    # the old refresh_token is already invalid on Strava's side.
+    db.commit()
 
 
 def _strava_fetch_activities(access_token: str, per_page: int = 50) -> list[dict]:

@@ -105,6 +105,41 @@ def test_strava_sync_requires_connection(db):
         health_c.handle(db, health_c.SyncStrava(client_id=client.id))
 
 
+def test_strava_refresh_persists_even_if_fetch_then_fails(db, monkeypatch):
+    """Strava rotates the refresh_token on every use; if the new tokens aren't
+    committed immediately, a later failure (e.g. the activities fetch) rolls
+    back the refresh and leaves the connection stuck with an already-invalid
+    refresh_token."""
+    coach = make_coach(db)
+    client = make_client(db, coach)
+    connection = HealthConnection(client_id=client.id, provider="strava",
+                                  access_token="stale", refresh_token="old-refresh",
+                                  expires_at=FROZEN_NOW - timedelta(minutes=1))
+    db.add(connection)
+    db.commit()
+
+    class FakeResponse:
+        status_code = 200
+
+        def json(self):
+            return {"access_token": "new-token", "refresh_token": "new-refresh"}
+
+    monkeypatch.setattr(health_c.httpx, "post", lambda *a, **k: FakeResponse())
+
+    def failing_fetch(token, per_page=50):
+        raise HealthError("Strava API request failed — try again later.")
+
+    monkeypatch.setattr(health_c, "_strava_fetch_activities", failing_fetch)
+
+    with pytest.raises(HealthError, match="try again later"):
+        health_c.handle(db, health_c.SyncStrava(client_id=client.id))
+
+    db.expire_all()
+    refreshed = db.scalar(select(HealthConnection).where(HealthConnection.client_id == client.id))
+    assert refreshed.access_token == "new-token"
+    assert refreshed.refresh_token == "new-refresh"
+
+
 def test_stats_and_weekly_volume(db):
     coach = make_coach(db)
     client = make_client(db, coach)
